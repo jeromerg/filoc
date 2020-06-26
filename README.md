@@ -1,4 +1,4 @@
-from distributed import get_task_streamFiloc File Locator
+Filoc File Locator
 ==================
 
 This tiny library eases the saving, the reading and the analysis of files within a structured folder tree.
