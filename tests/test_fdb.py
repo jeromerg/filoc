@@ -60,18 +60,18 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"epid": 10, "simid": 1}, {"epid": 10, "simid": 2}]')
 
-        p = self.loc.report( { 'epid' : 10 }, test_reporter_1param)
+        p = self.loc.report({ 'epid' : 10 }, reporter_1param)
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]')
 
-        p = self.loc.report( { 'epid' : 10 }, test_reporter_2param)
+        p = self.loc.report({ 'epid' : 10 }, reporter_2param)
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"a": 100, "b": 1, "epid": 10, "simid": 1}, {"a": 300, "b": 2, "epid": 10, "simid": 2}]')
 
         # change file
         with self.loc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 333}, f)
 
-        p = self.loc.report( { 'epid' : 10 }, test_reporter_1param)
+        p = self.loc.report({ 'epid' : 10 }, reporter_1param)
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"a": 100, "epid": 10, "simid": 1}, {"a": 333, "epid": 10, "simid": 2}]')
 
@@ -86,24 +86,24 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"epid": 10, "simid": 1}, {"epid": 10, "simid": 2}]')
 
         # signature change does not take effect, because of cache
-        p = self.loc.report( { 'epid' : 10 }, test_reporter_1param, cache_locpath='.cache')
+        p = self.loc.report({ 'epid' : 10 }, reporter_1param, cache_locpath='.cache')
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"epid": 10, "simid": 1}, {"epid": 10, "simid": 2}]')
 
         # but change to file triggers cache refresh
         with self.loc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 333}, f)
 
-        p = self.loc.report( { 'epid' : 10 }, test_reporter_1param, cache_locpath='.cache')
+        p = self.loc.report({ 'epid' : 10 }, reporter_1param, cache_locpath='.cache')
         self.assertEqual(len(p), 2)
         self.assertEqual(json.dumps(p, sort_keys=True), '[{"epid": 10, "simid": 1}, {"a": 333, "epid": 10, "simid": 2}]')
 
 
-def test_reporter_1param(f):
+def reporter_1param(f):
     content = json.load(f)
     return { 'a' : content['a'] }
 
 
-def test_reporter_2param(f, properties):
+def reporter_2param(f, properties):
     content = json.load(f)
     return {
         'a' : content['a'],
