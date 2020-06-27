@@ -47,18 +47,18 @@ class Filoc:
     def __init__(self, locpath: str) -> None:
         super().__init__()
 
-        path_elts        = _re_path_placeholder.split("_" + locpath) # dummy _ ensures that first elt is not a placeholder
-        path_elts[0]     = path_elts[0][1:] # removes _
+        path_elts        = _re_path_placeholder.split("_" + locpath)  # dummy _ ensures that first elt is not a placeholder
+        path_elts[0]     = path_elts[0][1:]  # removes _
         placeholders     = path_elts[1::2]
-        valid_path       = "".join([e1+e2 for e1,e2 in zip(path_elts[::2], itertools.repeat(_improbable_string))])
+        valid_path       = "".join([e1+e2 for e1, e2 in zip(path_elts[::2], itertools.repeat(_improbable_string))])
         valid_file       = fsspec.open(valid_path)
         self.fs          = valid_file.fs           # type: AbstractFileSystem
-        norm_elts        = _re_improbable_string.split("_" + valid_file.path) # dummy _ ensures that first elt is not a placeholder
-        norm_elts[0]     = norm_elts[0][1:] # removes _
-        norm_path        = "".join([e1+e2 for e1,e2 in itertools.zip_longest(norm_elts[::2], placeholders, fillvalue="")])
+        norm_elts        = _re_improbable_string.split("_" + valid_file.path)  # dummy _ ensures that first elt is not a placeholder
+        norm_elts[0]     = norm_elts[0][1:]  # removes _
+        norm_path        = "".join([e1+e2 for e1, e2 in itertools.zip_longest(norm_elts[::2], placeholders, fillvalue="")])
         self.locpath     = norm_path  # type: str
         self.path_parser = parse.compile(self.locpath)  # type: parse.Parser
-        self.root_folder = self.fs.sep.join((norm_elts[0] + "AAA").split(self.fs.sep)[:-1]) # AAA ensures that the path ends with a file name/folder name to remove
+        self.root_folder = self.fs.sep.join((norm_elts[0] + "AAA").split(self.fs.sep)[:-1])  # AAA ensures that the path ends with a file name/folder name to remove
         # noinspection PyProtectedMember
         self.path_properties = set(self.path_parser._named_fields)  # type: Set[str]
 
@@ -74,7 +74,7 @@ class Filoc:
         undefined_keys = self.path_properties - set(properties)
         if len(undefined_keys) > 0:
             raise ValueError('Undefined properties: {}'.format(undefined_keys))
-        return self.locpath.format(**properties) # result should be normalized, because locpath is
+        return self.locpath.format(**properties)  # result should be normalized, because locpath is
 
     def build_glob_path(self, properties1 : Dict[str, object] = None, **properties2) -> str:
         properties = mix_properties1_properties2(properties1, properties2)
@@ -91,12 +91,12 @@ class Filoc:
 
         # finally format
         glob_path = glob_path.format(**path_values)
-        return glob_path # result should be normalized, because locpath is
+        return glob_path  # result should be normalized, because locpath is
 
     def find_paths(self, properties1 : Dict[str, object] = None, **properties2) -> List[str]:
         properties = mix_properties1_properties2(properties1, properties2)
         paths = self.fs.glob(self.build_glob_path(properties))
-        return sort_natural(paths) # result should be normalized, because TODO: VERIFY THAT fs.glob provides normalized paths
+        return sort_natural(paths)  # result should be normalized, because TODO: VERIFY THAT fs.glob provides normalized paths
 
     def find_paths_and_properties(self, properties1 : Dict[str, object] = None, **properties2) -> List[Tuple[str, List[str]]]:
         properties = mix_properties1_properties2(properties1, properties2)
