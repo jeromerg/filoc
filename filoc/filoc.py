@@ -26,7 +26,7 @@ default_cache_writer = pickle.dump
 
 
 def sort_natural(li: List[str]) -> List[str]:
-    # todo: improve
+    # todo: support float too
     return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
 
 
@@ -96,7 +96,7 @@ class Filoc:
     def find_paths(self, properties1 : Dict[str, object] = None, **properties2) -> List[str]:
         properties = mix_properties1_properties2(properties1, properties2)
         paths = self.fs.glob(self.build_glob_path(properties))
-        return sort_natural(paths)  # result should be normalized, because TODO: VERIFY THAT fs.glob provides normalized paths
+        return sort_natural(paths)
 
     def find_paths_and_properties(self, properties1 : Dict[str, object] = None, **properties2) -> List[Tuple[str, List[str]]]:
         properties = mix_properties1_properties2(properties1, properties2)
