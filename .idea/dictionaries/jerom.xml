@@ -4,10 +4,15 @@
       <w>elts</w>
       <w>epid</w>
       <w>filoc</w>
+      <w>fimap</w>
+      <w>fimaps</w>
       <w>fsspec</w>
       <w>hyperparameters</w>
       <w>jeromerg</w>
+      <w>keyvalues</w>
       <w>locpath</w>
+      <w>locpaths</w>
+      <w>multiloc</w>
       <w>simid</w>
     </words>
   </dictionary>

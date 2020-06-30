@@ -5,48 +5,89 @@ import os
 import pickle
 import re
 from collections import OrderedDict
+from functools import partial
 from inspect import signature
-from typing import List, Set, Dict, Tuple, Callable, Union
+from typing import Dict, Any, List, Union, Callable, Optional, Set, Literal
+from typing import Tuple
+
 import fsspec
 import parse
 from fsspec import AbstractFileSystem
 from typing.io import IO
 
+log = logging.getLogger('filoc')
+
+# -----
+# Types
+# -----
+FiLocFileTypes = Literal[None, 'json', 'yaml', 'pickle', 'csv']
+
+FileReader = Union[
+    Callable[[IO], Dict[str, Any]],
+    Callable[[IO, Dict[str, Any]], Dict[str, Any]]
+]
+
+FileWriter = Union[
+    Callable[[IO, Dict[str, Any]], None],
+    Callable[[IO, Dict[str, Any], Dict[str, Any]], None]
+]
+
+# ---------
+# Constants
+# ---------
 _improbable_string    = "o=NvZ_ps$"
 _re_improbable_string = re.compile(r'(o=NvZ_ps\$)')
 _re_natural           = re.compile(r"(\d+)")
 _re_path_placeholder  = re.compile(r'({[^}]+})')
 
-FileAnalyzerType = Union[None, Callable[[IO], Dict[str, object]], Callable[[IO, Dict[str, object]], Dict[str, object]]]
-
-log = logging.getLogger('filoc')
-
-default_cache_reader = pickle.load
-default_cache_writer = pickle.dump
+_default_cache_reader = pickle.load
+_default_cache_writer = pickle.dump
 
 
+# -------
+# Helpers
+# -------
 def sort_natural(li: List[str]) -> List[str]:
     # todo: support float too
     return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
 
 
-def mix_properties1_properties2(properties1, properties2):
-    properties2 = None if len(properties2) == 0 else properties2
-    if properties1 and properties2:
-        properties = OrderedDict([properties1, properties2])
-    elif properties1:
-        properties = properties1
-    elif properties2:
-        properties = properties2
+def mix_dicts(dict1, dict2):
+    dict2 = None if len(dict2) == 0 else dict2
+    if dict1 and dict2:
+        properties = OrderedDict([dict1, dict2])
+    elif dict1:
+        properties = dict1
+    elif dict2:
+        properties = dict2
     else:
         properties = {}
     return properties
 
 
-class Filoc:
+def _get_reader_writer(file_type : FiLocFileTypes):
+    if file_type == 'json':
+        import json
+        return json.load, partial(json.dump, indent=2, sort_keys=True)
+    elif file_type == 'yaml':
+        # noinspection PyPackageRequirements
+        import yaml
+        return yaml.load, yaml.dump
+    elif file_type == 'csv':
+        import csv
+        return csv.DictReader, csv.DictWriter
+    elif file_type == 'pickle':
+        import pickle
+        return pickle.load, pickle.dump
+
+
+# -------------------
+# Base Class RawFiloc
+# -------------------
+class RawFiloc:
     def __init__(self, locpath: str) -> None:
         super().__init__()
-
+        self.locpath     = locpath
         path_elts        = _re_path_placeholder.split("_" + locpath)  # dummy _ ensures that first elt is not a placeholder
         path_elts[0]     = path_elts[0][1:]  # removes _
         placeholders     = path_elts[1::2]
@@ -63,21 +104,21 @@ class Filoc:
         self.path_properties = set(self.path_parser._named_fields)  # type: Set[str]
 
     # noinspection PyDefaultArgument
-    def extract_properties(self, path: str) -> Dict[str, object]:
+    def get_path_properties(self, path: str) -> Dict[str, Any]:
         try:
             return self.path_parser.parse(path).named
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
-    def build_path(self, properties1 : Dict[str, object] = None, **properties2) -> str:
-        properties = mix_properties1_properties2(properties1, properties2)
+    def get_path(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> str:
+        properties = mix_dicts(properties1, properties2)
         undefined_keys = self.path_properties - set(properties)
         if len(undefined_keys) > 0:
             raise ValueError('Undefined properties: {}'.format(undefined_keys))
         return self.locpath.format(**properties)  # result should be normalized, because locpath is
 
-    def build_glob_path(self, properties1 : Dict[str, object] = None, **properties2) -> str:
-        properties = mix_properties1_properties2(properties1, properties2)
+    def get_glob_path(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> str:
+        properties = mix_dicts(properties1, properties2)
         provided_keys = set(properties)
         undefined_keys = self.path_properties - provided_keys
         defined_keys = self.path_properties - undefined_keys
@@ -87,24 +128,24 @@ class Filoc:
 
         glob_path = self.locpath
         for undefined_key in undefined_keys:
-            glob_path = re.sub(r'{' + undefined_key + r'(?::[^}]*)}', '*', glob_path)
+            glob_path = re.sub(r'{' + undefined_key + r'(?::[^}]*)?}', '?*', glob_path)
 
         # finally format
         glob_path = glob_path.format(**path_values)
         return glob_path  # result should be normalized, because locpath is
 
-    def find_paths(self, properties1 : Dict[str, object] = None, **properties2) -> List[str]:
-        properties = mix_properties1_properties2(properties1, properties2)
-        paths = self.fs.glob(self.build_glob_path(properties))
+    def find_paths(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> List[str]:
+        properties = mix_dicts(properties1, properties2)
+        paths = self.fs.glob(self.get_glob_path(properties))
         return sort_natural(paths)
 
-    def find_paths_and_properties(self, properties1 : Dict[str, object] = None, **properties2) -> List[Tuple[str, List[str]]]:
-        properties = mix_properties1_properties2(properties1, properties2)
+    def find_paths_and_properties(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> List[Tuple[str, List[str]]]:
+        properties = mix_dicts(properties1, properties2)
         paths = self.find_paths(properties)
-        return [(p, self.extract_properties(p)) for p in paths]
+        return [(p, self.get_path_properties(p)) for p in paths]
 
-    def open(self, properties : Dict[str, object], mode="rb", block_size=None, cache_options=None, **kwargs):
-        path = self.build_path(properties)
+    def open(self, properties : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):
+        path = self.get_path(properties)
         dirname = os.path.dirname(path)
 
         if not self.fs.exists(dirname) and len( set(mode) & set("wa+")) > 0:
@@ -112,115 +153,191 @@ class Filoc:
 
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
-    def report(
+    def delete(self, properties : Dict[str, Any]):
+        for path in self.find_paths(properties):
+            self.fs.delete(path)
+
+    def __eq__(self, other):
+        if other is not self:
+            return False
+        return self.locpath == other.locpath
+
+    def __hash__(self):
+        return self.locpath.__hash__()
+
+
+# -------------------
+# Main Class Filoc
+# -------------------
+class Filoc(RawFiloc):
+    # noinspection PyDefaultArgument
+    def __init__(
             self,
-            properties: Dict[str, object],
-            file_analyzer : FileAnalyzerType = None,
-            cache_locpath=None,
-            timestamp_col=None,
-            mode="rb",
-            block_size=None,
-            cache_options=None,
-            **kwargs
-    ) -> List[Dict[str, object]]:
+            locpath             : str,
+            file_type           : FiLocFileTypes       = None,
+            reader              : Optional[FileReader] = None,
+            writer              : Optional[FileWriter] = None,
+            reader_open_options : Dict[str, Any]       = {'mode': 'rb'},
+            writer_open_options : Dict[str, Any]       = {'mode': 'rw'},
+            cache_locpath       : str                  = None,
+            timestamp_col       : str                  = None,
+    ):
         """
         if cache_locpath is relative, then it will be relative to result_locpath
         """
-        result = []
+        super().__init__(locpath)
 
-        cache_loc = None
+        # reader and writer
+        self.file_type = file_type
+        default_reader, default_writer = (None, None)
+        if file_type and (reader is None or writer is None):
+            default_reader, default_writer = _get_reader_writer(file_type)
+        self.reader = reader if reader else default_reader if file_type else None  # type:Optional[FileReader]
+        self.writer = writer if writer else default_writer if file_type else None  # type:Optional[FileWriter]
+        self.reader_open_options = reader_open_options  # type:Dict[str, Any]
+        self.writer_open_options = writer_open_options  # type:Dict[str, Any]
+
+        # cache loc
+        self.cache_loc = None
         if cache_locpath is not None:
             if not os.path.isabs(cache_locpath):
                 cache_locpath = self.root_folder + '/' + cache_locpath
-            cache_loc = Filoc(cache_locpath)
-
-        if cache_loc is None:
-            cache_timestamp_col = None
+            self.cache_loc = RawFiloc(cache_locpath)
+        self.timestamp_col = timestamp_col
+        # cache_timestamp_col
+        if self.cache_loc is None:
+            self.cache_timestamp_col = None
         elif timestamp_col is None:
-            cache_timestamp_col = 'timestamp'
+            self.cache_timestamp_col = 'timestamp'
         else:
-            cache_timestamp_col = timestamp_col
+            self.cache_timestamp_col = timestamp_col
 
+    def clean_cache(self, properties1 : Dict[str, Any] = None, **properties2):
+        properties = mix_dicts(properties1, properties2)
+        self.cache_loc.delete(properties)
+
+    def get_values(self, properties1 : Dict[str, Any] = None, **properties2) -> List[Dict[str, Any]]:
+        properties = mix_dicts(properties1, properties2)
+        return [OrderedDict([props, values]) for (props, values) in self._get_values_by_properties(properties).items()]
+
+    def _get_values_by_properties(self, properties1 : Dict[str, Any] = None, **properties2) -> Dict[Dict[str, Any], Dict[str, Any]]:
+        properties = mix_dicts(properties1, properties2)
+        result = OrderedDict()
         opened_cache_path       = None
         opened_cache            = None
         paths_and_properties    = self.find_paths_and_properties(properties)
-        log.info(f'Found {len(paths_and_properties)} files to analyse in path {self.locpath} with properties {json.dumps(properties)}')
+        log.info(f'Found {len(paths_and_properties)} files to read in locpath {self.locpath} with properties {json.dumps(properties)}')
         for (f_path, f_props) in paths_and_properties:
             f_timestamp = os.path.getmtime(f_path)
 
-            cache_key = json.dumps(f_props, sort_keys=True)
-
             # renew cache, on cache file change
-            if cache_loc:
-                f_cache_path = cache_loc.build_path(f_props)
+            if self.cache_loc:
+                f_cache_path = self.cache_loc.get_path(f_props)
                 if opened_cache_path is None or opened_cache_path != f_cache_path:
                     # flush previous cache, if exists
                     if opened_cache_path:
-                        with cache_loc.open(f_props, 'wb') as f:
-                            default_cache_writer(opened_cache, f)
+                        with self.cache_loc.open(f_props, 'wb') as f:
+                            _default_cache_writer(opened_cache, f)
 
                     # now prepare new cache
                     opened_cache_path = f_cache_path
                     opened_cache      = OrderedDict()
-                    if os.path.exists(cache_locpath):
-                        with self.fs.open(cache_locpath, 'rb') as f:
-                            opened_cache = default_cache_reader(f)  # type:Dict[str, Dict[str, object]]
+                    if self.cache_loc.fs.exists(opened_cache_path):
+                        with self.fs.open(opened_cache_path, 'rb') as f:
+                            opened_cache = _default_cache_reader(f)  # type:Dict[str, Dict[str, Any]]
 
-            # skip, if cache entry is still valid
-            if cache_loc:
-                if cache_key in opened_cache:
-                    cached_entry = opened_cache[cache_key]  # type: Dict[str, object]
-                    cached_entry_timestamp = cached_entry[cache_timestamp_col]
+            # check whether cache entry is still valid
+            if self.cache_loc:
+                if f_props in opened_cache:
+                    cached_entry = opened_cache[f_props]  # type: Dict[str, Any]
+                    cached_entry_timestamp = cached_entry[self.cache_timestamp_col]
                     if cached_entry_timestamp == f_timestamp:
                         log.info(f'File analysis cached: {f_path}')
-                        result.append(cached_entry)
+                        result[f_props] = cached_entry
                         continue
                     else:
                         log.info(f'Cache out of date for {f_path}')
 
-            # build a new report entry
-            file_report = OrderedDict()
+            # cache is not valid: read file!
+            key_values = OrderedDict()
             # -> timestamps
-            if cache_timestamp_col:
-                file_report[cache_timestamp_col] = f_timestamp
-            if timestamp_col:
-                file_report[timestamp_col] = f_timestamp
-            # -> f_props
-            file_report.update(f_props)
+            if self.cache_timestamp_col:
+                key_values[self.cache_timestamp_col] = f_timestamp
+            if self.timestamp_col:
+                key_values[self.timestamp_col] = f_timestamp
             # -> custom report
-            if file_analyzer is not None:
-                custom_report = self.get_file_custom_report(f_path, f_props, file_analyzer, mode, block_size, cache_options, **kwargs)
-                file_report.update(custom_report)
+            if self.reader is not None:
+                custom_report = self._read_single_file(f_path, f_props)
+                key_values.update(custom_report)
 
             # add to result and cache
-            result.append(file_report)
-            if cache_loc:
-                opened_cache[cache_key] = file_report
+            result[f_props] = key_values
+            if self.cache_loc:
+                opened_cache[f_props] = key_values
 
         # flush last used cache
-        if cache_loc:
-            with cache_loc.open(properties, 'wb') as f:
-                default_cache_writer(opened_cache, f)
+        if self.cache_loc:
+            with self.cache_loc.open(properties, 'wb') as f:
+                _default_cache_writer(opened_cache, f)
 
-        if cache_timestamp_col != timestamp_col:
+        if self.cache_timestamp_col != self.timestamp_col:
             for r in result:
-                if cache_timestamp_col in r:
-                    del r[cache_timestamp_col]
+                if self.cache_timestamp_col in r:
+                    del r[self.cache_timestamp_col]
 
         return result
 
-    def get_file_custom_report(self, f_path, f_props, file_analyzer, mode="rb", block_size=None, cache_options=None, **kwargs):
-        len_params = len(signature(file_analyzer).parameters)
+    def _read_single_file(self, f_path, f_props):
+        len_params = len(signature(self.reader).parameters)
         if len_params == 1:
             log.info(f'Analyzing file {f_path}')
-            with self.fs.open(f_path, mode, block_size, cache_options, **kwargs) as f:
-                custom_report = file_analyzer(f)
+            with self.fs.open(f_path, **self.reader_open_options) as f:
+                custom_report = self.reader(f)
             log.info(f'Analyzed file {f_path}')
         elif len_params == 2:
             log.info(f'Analyzing file {f_path}')
-            with self.fs.open(f_path, mode, block_size, cache_options, **kwargs) as f:
-                custom_report = file_analyzer(f, f_props)
+            with self.fs.open(f_path, **self.reader_open_options) as f:
+                custom_report = self.reader(f, f_props)
             log.info(f'Analyzed file {f_path}')
         else:
             raise ValueError(f'Provided file_analyzer accepts {len_params} parameters, allowed signature: f(path) or f(path, properties)')
         return custom_report
+
+
+class Multiloc:
+    def __init__(self, fimaps1 : Dict[str, Filoc], **fimaps2 : Filoc):
+        self.fimaps_by_name = mix_dicts(fimaps1, fimaps2)
+        self.properties_prefix = 'properties'
+
+    def get_values(self, properties1 : Dict[str, Any] = None, **properties2):
+        properties = mix_dicts(properties1, properties2)
+        # collect
+        all_properties_combinations_set = set()             # type:Set[Dict[str, Any]]
+        all_properties_combinations_in_order = []           # type:List[Dict[str, Any]]
+        keyvalues_by_properties_by_fimap_name = OrderedDict()  # type:OrderedDict[str, Dict[Dict[str, Any], Dict[str, Any]]]
+        for property_name, fimap in self.fimaps_by_name.items():
+            # noinspection PyProtectedMember
+            keyvalues_by_properties = fimap._get_values_by_properties(properties)
+            keyvalues_by_properties_by_fimap_name[property_name] = keyvalues_by_properties
+            for props in keyvalues_by_properties:
+                if props not in all_properties_combinations_set:
+                    all_properties_combinations_set.add(props)
+                    all_properties_combinations_in_order.append(props)
+
+        # outer join
+        result = []
+        for properties in all_properties_combinations_in_order:
+            result_row = OrderedDict()
+            result.append(result_row)
+
+            # add properties
+            for property_name, property_value in properties.items():
+                result_row[(self.properties_prefix, property_name)] = property_value
+
+            # add all key values for each fimap
+            for fimap_name, keyvalues_by_properties in keyvalues_by_properties_by_fimap_name.items():
+                keyvalues = keyvalues_by_properties.get(properties, None)
+                if keyvalues:
+                    for key, value in keyvalues.items():
+                        result_row[(fimap_name, key)] = value
+        return result

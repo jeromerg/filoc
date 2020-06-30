@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from filoc.filoc import Filoc
+from filoc.filoc import RawFiloc
 
 
 def touch_file(file_path):
@@ -18,23 +18,23 @@ class MyTestCase(unittest.TestCase):
         self.maxDiff = None
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')
         self.path_fmt = self.test_dir + r'/simid={simid:d}/epid={epid:d}/hyperparameters.json'
-        self.loc = Filoc(self.path_fmt)
+        self.loc = RawFiloc(self.path_fmt)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
 
     def test_build_path_and_extract_properties(self):
-        path1 = self.loc.build_path(simid=12, epid=102)
+        path1 = self.loc.get_path(simid=12, epid=102)
         self.assertEqual(path1, rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
-        props = self.loc.extract_properties(path1)
+        props = self.loc.get_path_properties(path1)
         self.assertEqual(props['simid'], 12)
         self.assertEqual(props['epid'], 102)
 
     def test_build_path_and_get_existing_files(self):
-        touch_file(self.loc.build_path(simid=1, epid=10))
-        touch_file(self.loc.build_path(simid=1, epid=20))
-        touch_file(self.loc.build_path(simid=2, epid=10))
-        touch_file(self.loc.build_path(simid=2, epid=20))
+        touch_file(self.loc.get_path(simid=1, epid=10))
+        touch_file(self.loc.get_path(simid=1, epid=20))
+        touch_file(self.loc.get_path(simid=2, epid=10))
+        touch_file(self.loc.get_path(simid=2, epid=20))
         p = self.loc.find_paths(simid=1)
         self.assertListEqual(p, [
             rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json",
