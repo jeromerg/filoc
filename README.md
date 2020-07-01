@@ -65,7 +65,7 @@ def my_analysis(f):
 
 fimap = FiMap(loc, my_analysis)
 
-report = fimap.get_values(simid=0)
+report = fimap.read_contents(simid=0)
 
 print(report) #-> [{"simid":0, "epid":1, "content_length":6}, {"simid":0, "epid":2, "content_length":5}]
 

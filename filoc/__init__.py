@@ -1,6 +1,8 @@
-from .filoc import RawFiloc, Filoc, Multiloc
+from .rawfiloc import RawFiloc
+from .filoc import Filoc
+from .multiloc import Multiloc
 
-__version__ = '0.0.1'
+__version__ = '0.0.6'
 __all__     = [
     'RawFiloc',
     'Filoc',

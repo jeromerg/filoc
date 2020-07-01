@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from filoc.filoc import RawFiloc
+from filoc.rawfiloc import RawFiloc
 
 
 def touch_file(file_path):
