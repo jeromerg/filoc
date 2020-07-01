@@ -13,7 +13,7 @@ def touch_file(file_path):
     Path(file_path).touch()
 
 
-class MyTestCase(unittest.TestCase):
+class TestFiloc(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')
@@ -22,33 +22,6 @@ class MyTestCase(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
-
-    def test_build_path_and_extract_properties(self):
-        path1 = self.loc.get_path(simid=12, epid=102)
-        self.assertEqual(path1, rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
-        props = self.loc.get_path_properties(path1)
-        self.assertEqual(props['simid'], 12)
-        self.assertEqual(props['epid'], 102)
-
-    def test_build_path_and_get_existing_files(self):
-        touch_file(self.loc.get_path(simid=1, epid=10))
-        touch_file(self.loc.get_path(simid=1, epid=20))
-        touch_file(self.loc.get_path(simid=2, epid=10))
-        touch_file(self.loc.get_path(simid=2, epid=20))
-        p = self.loc.find_paths(simid=1)
-        self.assertListEqual(p, [
-            rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json",
-            rf"{self.test_dir}/simid=1/epid=20/hyperparameters.json"
-        ])
-
-        p = self.loc.find_paths(epid=10)
-        self.assertListEqual(p, [
-            rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json",
-            rf"{self.test_dir}/simid=2/epid=10/hyperparameters.json"
-        ])
-
-        p = self.loc.find_paths(epid=12)
-        self.assertListEqual(p, [])
 
     def test_build_path_and_report(self):
         with self.loc.open({"simid": 1, "epid": 10}, "w") as f: json.dump({'a': 100}, f)

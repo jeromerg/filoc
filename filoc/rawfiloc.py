@@ -117,9 +117,17 @@ class RawFiloc:
 
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
-    def delete(self, path_props : Dict[str, Any]):
-        for path in self.find_paths(path_props):
-            self.fs.delete(path)
+    # noinspection PyDefaultArgument
+    def delete(self, path_props : Optional[Dict[str, Any]] = {}, dry_run= False):
+        path_to_delete = self.find_paths(path_props)
+        log.info(f'(dry_run) Deleting {len(path_to_delete)} files with path_props "{path_props}"')
+        for path in path_to_delete:
+            if dry_run:
+                log.info(f'(dry_run) Deleting "{path}"')
+            else:
+                log.info(f'(dry_run) Deleting "{path}"')
+                self.fs.delete(path)
+        log.info(f'(dry_run) Deleted {len(path_to_delete)} files with path_props "{path_props}"')
 
     def __eq__(self, other):
         if other is not self:
