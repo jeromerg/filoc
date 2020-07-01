@@ -55,14 +55,13 @@ def sort_natural(li: List[str]) -> List[str]:
 def mix_dicts(dict1, dict2):
     dict2 = None if len(dict2) == 0 else dict2
     if dict1 and dict2:
-        properties = OrderedDict([dict1, dict2])
+        return OrderedDict([dict1, dict2])
     elif dict1:
-        properties = dict1
+        return dict1
     elif dict2:
-        properties = dict2
+        return dict2
     else:
-        properties = {}
-    return properties
+        return {}
 
 
 def _get_reader_writer(file_type : FiLocFileTypes):
@@ -101,7 +100,7 @@ class RawFiloc:
         self.path_parser = parse.compile(self.locpath)  # type: parse.Parser
         self.root_folder = self.fs.sep.join((norm_elts[0] + "AAA").split(self.fs.sep)[:-1])  # AAA ensures that the path ends with a file name/folder name to remove
         # noinspection PyProtectedMember
-        self.path_properties = set(self.path_parser._named_fields)  # type: Set[str]
+        self.path_props  = set(self.path_parser._named_fields)  # type: Set[str]
 
     # noinspection PyDefaultArgument
     def get_path_properties(self, path: str) -> Dict[str, Any]:
@@ -110,21 +109,21 @@ class RawFiloc:
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
-    def get_path(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> str:
-        properties = mix_dicts(properties1, properties2)
-        undefined_keys = self.path_properties - set(properties)
+    def get_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        undefined_keys = self.path_props - set(path_props)
         if len(undefined_keys) > 0:
-            raise ValueError('Undefined properties: {}'.format(undefined_keys))
-        return self.locpath.format(**properties)  # result should be normalized, because locpath is
+            raise ValueError('Undefined props: {}'.format(undefined_keys))
+        return self.locpath.format(**path_props)  # result should be normalized, because locpath is
 
-    def get_glob_path(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> str:
-        properties = mix_dicts(properties1, properties2)
-        provided_keys = set(properties)
-        undefined_keys = self.path_properties - provided_keys
-        defined_keys = self.path_properties - undefined_keys
+    def get_glob_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        provided_keys = set(path_props)
+        undefined_keys = self.path_props - provided_keys
+        defined_keys = self.path_props - undefined_keys
 
         path_values = OrderedDict()
-        path_values.update({(k, properties[k]) for k in defined_keys})
+        path_values.update({(k, path_props[k]) for k in defined_keys})
 
         glob_path = self.locpath
         for undefined_key in undefined_keys:
@@ -134,18 +133,22 @@ class RawFiloc:
         glob_path = glob_path.format(**path_values)
         return glob_path  # result should be normalized, because locpath is
 
-    def find_paths(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> List[str]:
-        properties = mix_dicts(properties1, properties2)
-        paths = self.fs.glob(self.get_glob_path(properties))
+    def find_paths(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[str]:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        paths = self.fs.glob(self.get_glob_path(path_props))
         return sort_natural(paths)
 
-    def find_paths_and_properties(self, properties1 : Dict[str, Any] = None, **properties2 : Any) -> List[Tuple[str, List[str]]]:
-        properties = mix_dicts(properties1, properties2)
-        paths = self.find_paths(properties)
+    def find_paths_and_path_props(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[Tuple[str, List[str]]]:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        paths = self.find_paths(path_props)
         return [(p, self.get_path_properties(p)) for p in paths]
 
-    def open(self, properties : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):
-        path = self.get_path(properties)
+    def exists(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> bool:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        return self.fs.exists(self.get_path(path_props))
+
+    def open(self, path_props : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):
+        path = self.get_path(path_props)
         dirname = os.path.dirname(path)
 
         if not self.fs.exists(dirname) and len( set(mode) & set("wa+")) > 0:
@@ -153,8 +156,8 @@ class RawFiloc:
 
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
-    def delete(self, properties : Dict[str, Any]):
-        for path in self.find_paths(properties):
+    def delete(self, path_props : Dict[str, Any]):
+        for path in self.find_paths(path_props):
             self.fs.delete(path)
 
     def __eq__(self, other):
@@ -212,44 +215,83 @@ class Filoc(RawFiloc):
         else:
             self.cache_timestamp_col = timestamp_col
 
-    def clean_cache(self, properties1 : Dict[str, Any] = None, **properties2):
-        properties = mix_dicts(properties1, properties2)
-        self.cache_loc.delete(properties)
+    def invalidate_cache(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs):
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        self.cache_loc.delete(path_props)
 
-    def get_values(self, properties1 : Dict[str, Any] = None, **properties2) -> List[Dict[str, Any]]:
-        properties = mix_dicts(properties1, properties2)
-        return [OrderedDict([props, values]) for (props, values) in self._get_values_by_properties(properties).items()]
+    def get_keyvalues(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs) -> List[Dict[str, Any]]:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        return self._get_keyvalues_by_path_props(path_props).values()
 
-    def _get_values_by_properties(self, properties1 : Dict[str, Any] = None, **properties2) -> Dict[Dict[str, Any], Dict[str, Any]]:
-        properties = mix_dicts(properties1, properties2)
+    def get_keyvalues_list(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs) -> List[Dict[str, Any]]:
+        path_props = mix_dicts(path_props, path_props_kwargs)
+        return [OrderedDict([props, values]) for (props, values) in self._get_keyvalues_by_path_props(path_props).items()]
+
+    def write_values(self, keyvalues_list : List[Dict[str, Any]]):
+        recorded_row_id_by_path_props  = {}
+        recorded_keyvalues_by_path_props = {}
+        for row_id, keyvalues in enumerate(keyvalues_list):
+            f_path_props, timestamp, cache_timestamp, f_keyvalues = self._split_keyvalues(keyvalues)
+
+            # avoid saving file if no changes
+            if self.exists(f_path_props):
+                old_keyvalues = self.get_keyvalues(f_path_props)
+                if old_keyvalues == keyvalues:
+                    log.info(f'Row {row_id}: No difference detected: do nothing')
+                    continue
+
+            log.info(f'Row {row_id}: Difference detected: update values')
+
+            # validate multiple changes consistency
+            if f_path_props in recorded_keyvalues_by_path_props:
+                recorded_keyvalues = recorded_keyvalues_by_path_props[f_path_props]
+                if recorded_keyvalues != f_keyvalues:
+                    other_row_id = recorded_row_id_by_path_props[f_path_props]
+                    raise ValueError(f'Rows {row_id} and {other_row_id} need to be saved to the same file, but have different keyvalues:\n{row_id}: {f_keyvalues}\n{other_row_id}: {recorded_keyvalues}')
+                else:
+                    continue  # do nothing, as change has already been recorded
+
+            # record change to perform and notice row_id (last is for error message)
+            recorded_row_id_by_path_props[f_path_props]    = row_id
+            recorded_keyvalues_by_path_props[f_path_props] = f_keyvalues
+
+        for f_path_props, keyvalues in recorded_keyvalues_by_path_props.items():
+            self.invalidate_cache(f_path_props)
+            with self.open(f_path_props, **self.writer_open_options) as f:
+                self.writer(f, keyvalues)
+
+    def _get_keyvalues_by_path_props(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs) -> Dict[Dict[str, Any], Dict[str, Any]]:
+        path_props = mix_dicts(path_props, path_props_kwargs)
         result = OrderedDict()
-        opened_cache_path       = None
-        opened_cache            = None
-        paths_and_properties    = self.find_paths_and_properties(properties)
-        log.info(f'Found {len(paths_and_properties)} files to read in locpath {self.locpath} with properties {json.dumps(properties)}')
-        for (f_path, f_props) in paths_and_properties:
+
+        cache_props_cache       = None  # type:Optional[Tuple[Dict[str, Any]], Dict[Dict[str, Any], Dict[str, Any]]]
+        paths_and_path_props    = self.find_paths_and_path_props(path_props)
+        log.info(f'Found {len(paths_and_path_props)} files to read in locpath {self.locpath} with path_props {json.dumps(path_props)}')
+        for (f_path, f_props) in paths_and_path_props:
             f_timestamp = os.path.getmtime(f_path)
 
             # renew cache, on cache file change
             if self.cache_loc:
-                f_cache_path = self.cache_loc.get_path(f_props)
-                if opened_cache_path is None or opened_cache_path != f_cache_path:
+                f_cache_path  = self.cache_loc.get_path(f_props)
+                f_cache_props = self.cache_loc.get_path_properties(f_cache_path)
+
+                if cache_props_cache[0] != f_cache_props:
                     # flush previous cache, if exists
-                    if opened_cache_path:
-                        with self.cache_loc.open(f_props, 'wb') as f:
-                            _default_cache_writer(opened_cache, f)
+                    if cache_props_cache[0]:
+                        with self.cache_loc.open(cache_props_cache[0], 'wb') as f:
+                            _default_cache_writer(cache_props_cache[1], f)
 
                     # now prepare new cache
-                    opened_cache_path = f_cache_path
-                    opened_cache      = OrderedDict()
-                    if self.cache_loc.fs.exists(opened_cache_path):
-                        with self.fs.open(opened_cache_path, 'rb') as f:
-                            opened_cache = _default_cache_reader(f)  # type:Dict[str, Dict[str, Any]]
+                    if self.cache_loc.exists(cache_props_cache[0]):
+                        with self.open(cache_props_cache[0], 'rb') as f:
+                            cache_props_cache = (f_cache_props, _default_cache_reader(f))
+                    else:
+                        cache_props_cache = (f_cache_props, OrderedDict())
 
             # check whether cache entry is still valid
             if self.cache_loc:
-                if f_props in opened_cache:
-                    cached_entry = opened_cache[f_props]  # type: Dict[str, Any]
+                if f_props in cache_props_cache[1]:
+                    cached_entry = cache_props_cache[1][f_props]  # type: Dict[str, Any]
                     cached_entry_timestamp = cached_entry[self.cache_timestamp_col]
                     if cached_entry_timestamp == f_timestamp:
                         log.info(f'File analysis cached: {f_path}')
@@ -259,26 +301,25 @@ class Filoc(RawFiloc):
                         log.info(f'Cache out of date for {f_path}')
 
             # cache is not valid: read file!
-            key_values = OrderedDict()
+            f_keyvalues = OrderedDict()
             # -> timestamps
             if self.cache_timestamp_col:
-                key_values[self.cache_timestamp_col] = f_timestamp
+                f_keyvalues[self.cache_timestamp_col] = f_timestamp
             if self.timestamp_col:
-                key_values[self.timestamp_col] = f_timestamp
+                f_keyvalues[self.timestamp_col] = f_timestamp
             # -> custom report
             if self.reader is not None:
-                custom_report = self._read_single_file(f_path, f_props)
-                key_values.update(custom_report)
+                f_keyvalues.update(self._read_single_file(f_path, f_props))
 
             # add to result and cache
-            result[f_props] = key_values
+            result[f_props] = f_keyvalues
             if self.cache_loc:
-                opened_cache[f_props] = key_values
+                cache_props_cache[1][f_props] = f_keyvalues
 
         # flush last used cache
-        if self.cache_loc:
-            with self.cache_loc.open(properties, 'wb') as f:
-                _default_cache_writer(opened_cache, f)
+        if cache_props_cache:
+            with self.cache_loc.open(cache_props_cache[0], 'wb') as f:
+                _default_cache_writer(cache_props_cache[1], f)
 
         if self.cache_timestamp_col != self.timestamp_col:
             for r in result:
@@ -286,6 +327,22 @@ class Filoc(RawFiloc):
                     del r[self.cache_timestamp_col]
 
         return result
+
+    def _split_keyvalues(self, keyvalues):
+        path_props = {}
+        timestamp = None
+        cache_timestamp = None
+        file_keyvalues = OrderedDict()
+        for (k, v) in keyvalues:
+            if k in self.path_props:
+                path_props[k] = v
+            elif k == self.timestamp_col:
+                timestamp = keyvalues[k]
+            elif k == self.cache_timestamp_col:
+                cache_timestamp = keyvalues[k]
+            else:
+                file_keyvalues[k] = v
+        return path_props, timestamp, cache_timestamp, file_keyvalues
 
     def _read_single_file(self, f_path, f_props):
         len_params = len(signature(self.reader).parameters)
@@ -300,43 +357,59 @@ class Filoc(RawFiloc):
                 custom_report = self.reader(f, f_props)
             log.info(f'Analyzed file {f_path}')
         else:
-            raise ValueError(f'Provided file_analyzer accepts {len_params} parameters, allowed signature: f(path) or f(path, properties)')
+            raise ValueError(f'Provided file_analyzer accepts {len_params} parameters, allowed signature: f(path) or f(path, path_props)')
+        return custom_report
+
+    def _write_single_file(self, content : Dict[str, Any], f_path : str, f_props : Dict[str, Any]):
+        len_params = len(signature(self.writer).parameters)
+        if len_params == 1:
+            log.info(f'Analyzing file {f_path}')
+            with self.fs.open(f_path, **self.reader_open_options) as f:
+                custom_report = self.writer(f, content)
+            log.info(f'Analyzed file {f_path}')
+        elif len_params == 2:
+            log.info(f'Analyzing file {f_path}')
+            with self.fs.open(f_path, **self.reader_open_options) as f:
+                custom_report = self.writer(f, f_props)
+            log.info(f'Analyzed file {f_path}')
+        else:
+            raise ValueError(f'Provided file_analyzer accepts {len_params} parameters, allowed signature: f(path) or f(path, path_props)')
         return custom_report
 
 
 class Multiloc:
     def __init__(self, fimaps1 : Dict[str, Filoc], **fimaps2 : Filoc):
         self.fimaps_by_name = mix_dicts(fimaps1, fimaps2)
-        self.properties_prefix = 'properties'
+        self.path_props_prefix = 'path_props'
 
-    def get_values(self, properties1 : Dict[str, Any] = None, **properties2):
-        properties = mix_dicts(properties1, properties2)
+    def get_values(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs):
+        path_props = mix_dicts(path_props, path_props_kwargs)
         # collect
-        all_properties_combinations_set = set()             # type:Set[Dict[str, Any]]
-        all_properties_combinations_in_order = []           # type:List[Dict[str, Any]]
-        keyvalues_by_properties_by_fimap_name = OrderedDict()  # type:OrderedDict[str, Dict[Dict[str, Any], Dict[str, Any]]]
+        all_path_props_combinations_set = set()             # type:Set[Dict[str, Any]]
+        all_path_props_combinations_in_order = []           # type:List[Dict[str, Any]]
+        keyvalues_by_path_props_by_fimap_name = OrderedDict()  # type:OrderedDict[str, Dict[Dict[str, Any], Dict[str, Any]]]
         for property_name, fimap in self.fimaps_by_name.items():
             # noinspection PyProtectedMember
-            keyvalues_by_properties = fimap._get_values_by_properties(properties)
-            keyvalues_by_properties_by_fimap_name[property_name] = keyvalues_by_properties
-            for props in keyvalues_by_properties:
-                if props not in all_properties_combinations_set:
-                    all_properties_combinations_set.add(props)
-                    all_properties_combinations_in_order.append(props)
+            keyvalues_by_path_props = fimap._get_keyvalues_by_path_props(path_props)
+            keyvalues_by_path_props_by_fimap_name[property_name] = keyvalues_by_path_props
+            for props in keyvalues_by_path_props:
+                if props not in all_path_props_combinations_set:
+                    all_path_props_combinations_set.add(props)
+                    all_path_props_combinations_in_order.append(props)
 
         # outer join
         result = []
-        for properties in all_properties_combinations_in_order:
+        for path_props in all_path_props_combinations_in_order:
             result_row = OrderedDict()
             result.append(result_row)
 
-            # add properties
-            for property_name, property_value in properties.items():
-                result_row[(self.properties_prefix, property_name)] = property_value
+            # add path_props
+            for property_name, property_value in path_props.items():
+                result_row[(self.path_props_prefix, property_name)] = property_value
 
             # add all key values for each fimap
-            for fimap_name, keyvalues_by_properties in keyvalues_by_properties_by_fimap_name.items():
-                keyvalues = keyvalues_by_properties.get(properties, None)
+            for fimap_name, keyvalues_by_path_props in keyvalues_by_path_props_by_fimap_name.items():
+                keyvalues = keyvalues_by_path_props.get(path_props, None)
                 if keyvalues:
                     for key, value in keyvalues.items():
                         result_row[(fimap_name, key)] = value
