@@ -1,2 +1,5 @@
 fsspec
 parse
+frozendict
+orderedset
+pandas

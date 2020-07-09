@@ -3,6 +3,7 @@ import logging
 import os
 import re
 from collections import OrderedDict
+from io import UnsupportedOperation
 from typing import Dict, Any, List, Optional, Set
 from typing import Tuple
 
@@ -45,9 +46,10 @@ def mix_dicts(dict1, dict2):
 # Base Class RawFiloc
 # -------------------
 class RawFiloc:
-    def __init__(self, locpath: str) -> None:
+    def __init__(self, locpath: str, writable=False) -> None:
         super().__init__()
         self.locpath     = locpath
+        self.writable    = writable
         path_elts        = _re_path_placeholder.split("_" + locpath)  # dummy _ ensures that first elt is not a placeholder
         path_elts[0]     = path_elts[0][1:]  # removes _
         placeholders     = path_elts[1::2]
@@ -74,7 +76,7 @@ class RawFiloc:
         path_props = mix_dicts(path_props, path_props_kwargs)
         undefined_keys = self.path_props - set(path_props)
         if len(undefined_keys) > 0:
-            raise ValueError('Undefined props: {}'.format(undefined_keys))
+            raise ValueError('Required props undefined: {}. Provided: {}'.format(undefined_keys, path_props))
         return self.locpath.format(**path_props)  # result should be normalized, because locpath is
 
     def get_glob_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
@@ -109,16 +111,23 @@ class RawFiloc:
         return self.fs.exists(self.get_path(path_props))
 
     def open(self, path_props : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):
+        is_writing = len(set(mode) & set("wa+"))
+        if is_writing and not self.writable:
+            raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
+
         path = self.get_path(path_props)
         dirname = os.path.dirname(path)
 
-        if not self.fs.exists(dirname) and len( set(mode) & set("wa+")) > 0:
+        if not self.fs.exists(dirname) and is_writing > 0:
             self.fs.makedirs(dirname)
 
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
     # noinspection PyDefaultArgument
     def delete(self, path_props : Optional[Dict[str, Any]] = {}, dry_run= False):
+        if not self.writable:
+            raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable deleting')
+
         path_to_delete = self.find_paths(path_props)
         log.info(f'(dry_run) Deleting {len(path_to_delete)} files with path_props "{path_props}"')
         for path in path_to_delete:
