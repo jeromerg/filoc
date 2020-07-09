@@ -1,10 +1,32 @@
 FiLoc File Locator
 ==================
 
-This tiny library eases the saving, the reading and the analysis of files within a structured folder tree.
+Filoc makes the saving, reading and analysis of files easy: You files are the database. 
 
-Example
--------
+Machine Learning Swiss Knife
+----------------------------
+In machine learning, we use it to schedule, record, and analyze hundreds of machine learning experiences 
+without the need of any service.
+
+### Schedule Simulations
+
+Prepare hyperparameters for all your simulations at one place in a pandas dataframe or in an excel sheet. 
+Save the simulation configurations into the folder structure of your choice, along with the processing state.
+
+### Record Simulations
+
+In the algorithm script, you do not need to introduce any dependency to *filoc*. Just open the files previously
+written in the simulation folder. Nevertheless, you can also use *filoc* to harmonize your file handling. 
+
+### Analyze Simulations
+
+While the simulation are running or after, you can get insight on any information about the current results.
+ Filoc doesn't do any difference between the simulation state, the hyperparameters and the result files of your 
+ simulations: it handles all in the same way and displays statistical analysis along with the hyperparameters.
+
+
+Basic
+-----
 
 ```python
 import os
@@ -87,3 +109,15 @@ That way, it is possible to access ftp, HDFS or any other file repository suppor
 The path is at the same time a format string with named placeholder, which will be parsed by the [parse library](https://pypi.org/project/parse/).
 Each placeholder defines a *property* associated to the files to save, retrieve or analyse.
  
+ToDos
+-----
+
+- Readme Doc
+- API Doc 
+- File locking
+- Unit Test 
+    - Multiloc with different aggregation layers (snowflake)
+    - File locking
+- Dev: Logging of edited files
+- Dev: File watcher
+- Dev: Excel File watcher / binder
