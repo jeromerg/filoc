@@ -1,3 +1,5 @@
+![filoc:master](https://github.com/jeromerg/filoc/workflows/Python%20application/badge.svg)
+
 FiLoc File Locator
 ==================
 
@@ -30,9 +32,9 @@ Basic
 
 ```python
 import os
-from filoc import RawFiloc
+from filoc import Filoc
 
-loc = FiLoc('/data/simid={simid:d}/epid={epid:d}/settings.json') 
+loc = Filoc('/data/simid={simid:d}/epid={epid:d}/settings.json') 
 
 #--------------------------------------------------------------
 # Build the path for simid=0 and epid=1, then write to the file
@@ -85,7 +87,7 @@ def my_analysis(f):
     content = f.read()
     return { 'content_length' : len(content) }
 
-fimap = FiMap(loc, my_analysis)
+fimap = Filoc(loc, my_analysis)
 
 report = fimap.read_contents(simid=0)
 

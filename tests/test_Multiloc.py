@@ -29,7 +29,7 @@ class TestMultiloc(unittest.TestCase):
 
     def test_write_and_read_contents(self):
         # ACT 1
-        mloc = Multiloc({self.hyp_loc, self.res_loc})
+        mloc = Multiloc({'hyp' : self.hyp_loc, 'res' : self.res_loc})
         mloc.write_contents([
             {"path.simid": 1, "path.epid": 10, "hyp.a": 100, "res.b": 1000},
             {"path.simid": 1, "path.epid": 20, "hyp.a": 200, "res.b": 2000},
