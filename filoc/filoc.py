@@ -236,15 +236,16 @@ class Filoc(RawFiloc):
             recorded_row_id_by_path_props[f_path_props_hashable]    = row_id
             recorded_keyvalues_by_path_props[f_path_props_hashable] = f_keyvalues
 
+        dry_run_log_prefix = '(dry_run) ' if dry_run else ''
         for f_path_props, keyvalues in recorded_keyvalues_by_path_props.items():
             self.invalidate_cache(f_path_props)
             path = self.get_path(f_path_props)
             with self.open(f_path_props, **self.content_writer_options) as f:
+                log.info(f'{dry_run_log_prefix}Saving to {path}: {json.dumps(keyvalues)}')
                 if dry_run:
-                    log.info(f'(dry_run) Save to {path}: {json.dumps(keyvalues)}')
-                else:
-                    log.info(f'Save to {path}: {json.dumps(keyvalues)}')
-                    self.content_writer(keyvalues, f)
+                    continue
+                self.content_writer(keyvalues, f)
+                log.info(f'{dry_run_log_prefix}Saved {path}: {json.dumps(keyvalues)}')
 
     def _split_keyvalues(self, keyvalues):
         path_props      = {}

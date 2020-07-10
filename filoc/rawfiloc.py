@@ -129,14 +129,14 @@ class RawFiloc:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable deleting')
 
         path_to_delete = self.find_paths(path_props)
-        log.info(f'(dry_run) Deleting {len(path_to_delete)} files with path_props "{path_props}"')
+        dry_run_log_prefix = '(dry_run) ' if dry_run else ''
+        log.info(f'{dry_run_log_prefix}Deleting {len(path_to_delete)} files with path_props "{path_props}"')
         for path in path_to_delete:
+            log.info(f'{dry_run_log_prefix}Deleting "{path}"')
             if dry_run:
-                log.info(f'(dry_run) Deleting "{path}"')
-            else:
-                log.info(f'(dry_run) Deleting "{path}"')
-                self.fs.delete(path)
-        log.info(f'(dry_run) Deleted {len(path_to_delete)} files with path_props "{path_props}"')
+                continue
+            self.fs.delete(path)
+        log.info(f'{dry_run_log_prefix}Deleted {len(path_to_delete)} files with path_props "{path_props}"')
 
     def __eq__(self, other):
         if other is not self:
