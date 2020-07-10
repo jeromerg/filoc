@@ -1,4 +1,4 @@
-![filoc:master](https://github.com/jeromerg/filoc/workflows/Python%20application/badge.svg)
+![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
 FiLoc File Locator
 ==================
