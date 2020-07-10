@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="filoc",
-    version="0.0.6",
+    version="0.0.7",
     author="jeromerg",
     author_email="jeromerg@gmx.net",
     description="eases the saving and reading of files within a structured folder tree",
@@ -21,6 +21,8 @@ setuptools.setup(
     install_requires=[
         'fsspec',
         'parse',
+        'frozendict',
+        'orderedset',
     ],
     python_requires='>=3',
 )
