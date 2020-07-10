@@ -6,11 +6,9 @@ from collections import OrderedDict
 from functools import partial
 from inspect import getfullargspec
 from io import UnsupportedOperation
-from typing import Dict, Any, List, Union, Callable, Optional, Literal
-from typing import Tuple
+from typing import Dict, Any, List, Union, Callable, Optional, Literal, Tuple, IO
 
 from frozendict import frozendict
-from typing.io import IO
 
 from .rawfiloc import RawFiloc, mix_dicts
 
@@ -133,8 +131,12 @@ class Filoc(RawFiloc):
         log.info(f'Found {len(paths_and_path_props)} files to read in locpath {self.locpath} with path_props {json.dumps(path_props)}')
         for (f_path, f_props) in paths_and_path_props:
             f_props_hashable = frozendict(f_props.items())
-            f_timestamp = os.path.getmtime(f_path)
 
+            try:
+                f_timestamp = self.fs.modified(f_path)
+            except FileNotFoundError:
+                f_timestamp = None
+                
             # renew cache, on cache file change
             if self.cache_loc:
                 f_cache_path  = self.cache_loc.get_path(f_props)
@@ -162,10 +164,12 @@ class Filoc(RawFiloc):
                     cached_entry = cache_props_and_cache[1][f_props_hashable]  # type: Dict[str, Any]
                     cached_entry_timestamp = cached_entry[self.cache_timestamp_col]
                     if cached_entry_timestamp == f_timestamp:
+                        print(f'File analysis cached: {f_path}')
                         log.info(f'File analysis cached: {f_path}')
                         result[f_props_hashable] = cached_entry.copy()  # copy from cache
                         continue
                     else:
+                        print(f'Cache out of date for {f_path}')
                         log.info(f'Cache out of date for {f_path}')
 
             # cache is not valid: read file!
