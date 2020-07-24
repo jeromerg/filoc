@@ -32,7 +32,7 @@ Basic
 
 ```python
 import os
-from filoc import Filoc
+from filoc import FilocBase
 
 loc = Filoc('/data/simid={simid:d}/epid={epid:d}/settings.json') 
 
