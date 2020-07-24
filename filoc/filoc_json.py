@@ -53,7 +53,7 @@ class FilocCompositeJson(FilocCompositeBase[Dict[str, Any], List[Dict[str, Any]]
     def __init__(
             self,
             filoc_by_name   : Dict[str, FilocBase],
-            join_keys       : Optional[Iterable[str]] = None,
+            join_keys_by_filoc_name       : Optional[Iterable[str]] = None,
             join_level_name : str                     = 'index',
             join_separator  : str                     = '.',
     ):
@@ -63,7 +63,7 @@ class FilocCompositeJson(FilocCompositeBase[Dict[str, Any], List[Dict[str, Any]]
             _props_list_to_contents_converter,
             _content_to_props_list_converter,
             _contents_to_props_list_converter,
-            join_keys,
+            join_keys_by_filoc_name,
             join_level_name,
             join_separator,
         )

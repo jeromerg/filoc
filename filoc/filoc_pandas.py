@@ -65,7 +65,7 @@ class FilocCompositePandas(FilocCompositeBase[DataFrame, DataFrame]):
     def __init__(
             self,
             filoc_by_name   : Dict[str, FilocBase],
-            join_keys       : Optional[Iterable[str]] = None,
+            join_keys_by_filoc_name       : Optional[Iterable[str]] = None,
             join_level_name : str = 'index',
             join_separator  : str = '.',
     ):
@@ -75,7 +75,7 @@ class FilocCompositePandas(FilocCompositeBase[DataFrame, DataFrame]):
             _props_list_to_dataframe_converter,
             _dataframe_to_props_list_converter,
             _dataframe_to_props_list_converter,
-            join_keys,
+            join_keys_by_filoc_name,
             join_level_name,
             join_separator,
         )

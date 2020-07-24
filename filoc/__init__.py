@@ -48,14 +48,14 @@ def filoc(
         if content_type == 'json':
             return FilocCompositeJson(
                 filoc_by_name   = filoc_by_name,
-                join_keys       = join_keys,
+                join_keys_by_filoc_name= join_keys,
                 join_level_name = join_level_name,
                 join_separator  = join_separator,
             )
         elif content_type == 'pandas':
             return FilocCompositePandas(
                 filoc_by_name   = filoc_by_name,
-                join_keys       = join_keys,
+                join_keys_by_filoc_name= join_keys,
                 join_level_name = join_level_name,
                 join_separator  = join_separator,
             )

@@ -13,8 +13,11 @@ class TestMultiloc(unittest.TestCase):
     def setUp(self):
         self.maxDiff      = None
         self.test_dir     = tempfile.mkdtemp().replace('\\', '/')
+        self.path_fmt_simid_config = self.test_dir + r'/somewhere1/simid={simid:d}/config.json'
         self.path_fmt_hyp = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
         self.path_fmt_res = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
+        self.conf_wloc      = FilocJson(self.path_fmt_simid_config, writable=True)
+        self.conf_loc      = FilocJson(self.path_fmt_simid_config, writable=False)
         self.hyp_loc      = FilocJson(self.path_fmt_hyp, writable=True)
         self.res_loc      = FilocJson(self.path_fmt_res, writable=True)
 
@@ -26,7 +29,12 @@ class TestMultiloc(unittest.TestCase):
 
     def test_write_and_read_contents(self):
         # ACT 1
-        mloc = FilocCompositeJson({'hyp' : self.hyp_loc, 'res' : self.res_loc})
+        self.conf_wloc.write_contents([
+            {"simid": 1, "confA" : "Q"},
+            {"simid": 2, "confA" : "R"},
+        ])
+
+        mloc = FilocCompositeJson({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
         mloc.write_contents([
             {"index.simid": 1, "index.epid": 10, "hyp.a": 100, "res.b": 1000},
             {"index.simid": 1, "index.epid": 20, "hyp.a": 200, "res.b": 2000},
@@ -61,7 +69,7 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual(len(p), 2)
 
         self.assertEqual(
-            '[{"hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3000}]',
+            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3000}]',
             json.dumps(p, sort_keys=True))
 
 

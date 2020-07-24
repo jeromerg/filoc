@@ -6,7 +6,7 @@ from abc import ABC
 from collections import OrderedDict
 from datetime import datetime
 from io import UnsupportedOperation
-from typing import Dict, Any, Union, Optional, Tuple, Generic, Iterable
+from typing import Dict, Any, Optional, Tuple, Generic, Iterable, Set
 
 from frozendict import frozendict
 
@@ -102,14 +102,14 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
         contents    = self.props_list_to_contents(props_list)
         return contents
 
-    def read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+    def read_props_list(self, props_list : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
+        props_list = mix_dicts(props_list, constraints_kwargs)
         result = []
 
         cache_path_props_and_cache = None  # type:Optional[Tuple[Props], Dict[Props, Dict[str, Any]]]
 
-        paths_and_path_props  = self.find_paths_and_path_props(constraints)
-        log.info(f'Found {len(paths_and_path_props)} files to read in locpath {self.locpath} fulfilling props {json.dumps(constraints)}')
+        paths_and_path_props  = self.find_paths_and_path_props(props_list)
+        log.info(f'Found {len(paths_and_path_props)} files to read in locpath {self.locpath} fulfilling props {json.dumps(props_list)}')
         for (path, path_props) in paths_and_path_props:
             path_props_hashable = frozendict(path_props.items())
 
@@ -153,10 +153,10 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
             # cache is not valid: read path directly!
 
             # props from reader
-            constraints = self._read_path(path, path_props)    # type: PropsList
+            props_list = self._read_path(path, path_props)    # type: PropsList
 
             # augment read props with additional external data
-            for props in constraints:
+            for props in props_list:
                 # -> file timestamp
                 if self.timestamp_col:
                     props[self.timestamp_col] = f_timestamp
@@ -164,10 +164,10 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
                 props.update(path_props)
 
             # add to result
-            result.extend(constraints)
+            result.extend(props_list)
             # add to cache
             if self.cache_loc:
-                cache_path_props_and_cache[1][path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : constraints.copy()}
+                cache_path_props_and_cache[1][path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : props_list.copy()}
 
         # flush last used cache
         if cache_path_props_and_cache:
@@ -246,14 +246,14 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
 
     def __init__(
             self,
-            filoc_by_name          : Dict[str, FilocBase],
-            props_list_to_content  : PropsListToContent  ,
-            props_list_to_contents : PropsListToContents ,
-            content_to_props_list  : ContentToPropsList  ,
-            contents_to_props_list : ContentsToPropsList ,
-            join_keys              : Union[None, Iterable[str]] = None,
-            join_level_name        : str = 'index'       ,
-            join_separator         : str = '.'           ,
+            filoc_by_name           : Dict[str, FilocBase],
+            props_list_to_content   : PropsListToContent  ,
+            props_list_to_contents  : PropsListToContents ,
+            content_to_props_list   : ContentToPropsList  ,
+            contents_to_props_list  : ContentsToPropsList ,
+            join_keys_by_filoc_name : Optional[Dict[str, Iterable[str]]] = None,
+            join_level_name         : str = 'index'       ,
+            join_separator          : str = '.'           ,
     ):
         super(Filoc).__init__()
 
@@ -267,12 +267,13 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         self.content_to_props_list  = content_to_props_list
         self.contents_to_props_list = contents_to_props_list
 
-        if join_keys is None:
-            self.join_keys = set()
-            for filoc in filoc_by_name.values():
-                self.join_keys = self.join_keys | filoc.path_props
-        else:
-            self.join_keys = set(join_keys)
+        if join_keys_by_filoc_name is None:
+            self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
+        for filoc_name, filoc in filoc_by_name.items():
+            if filoc_name not in self.join_keys_by_filoc_name:
+                self.join_keys_by_filoc_name[filoc_name] = filoc.path_props
+            else:
+                self.join_keys_by_filoc_name[filoc_name] = set(join_keys_by_filoc_name[filoc_name])  # ensures set
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         constraints = mix_dicts(constraints, constraints_kwargs)
@@ -297,7 +298,10 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
             props_list_by_filoc_name[filoc_name] = filoc.read_props_list(constraints)
 
         # join
-        return merge_tables(props_list_by_filoc_name, list(self.join_keys), self.join_separator, self.join_level_name)
+        join_key_names = set()
+        for filoc_join_key_names in self.join_keys_by_filoc_name.values():
+            join_key_names = join_key_names | filoc_join_key_names
+        return merge_tables(props_list_by_filoc_name, list(join_key_names), self.join_separator, self.join_level_name)
 
     def write_content(self, content : TContent, dry_run=False):
         props_list = self.content_to_props_list(content)
@@ -312,7 +316,7 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         props_list_by_filoc_name = {
             filoc_name : [ OrderedDict() for _ in range(len(props_list)) ]
             for filoc_name, filoc in self.filoc_by_name.items()
-            if filoc.props_writer is not None
+            if filoc.writable and filoc.props_writer is not None
         }
         props_list_by_filoc_name[self.join_level_name] = [ OrderedDict() for _ in range(len(props_list)) ]
 
@@ -320,18 +324,27 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         split_cache = {}
         for row_id, props in enumerate(props_list):
             for (k, v) in props.items():
+
                 split_values = split_cache.get(k, None)
                 if split_values is None:
                     split_values = k.split(self.join_separator, 1)
                     split_cache[k] = split_values
+
                 filoc_name, prop_name = split_values
+
+                if filoc_name not in props_list_by_filoc_name:
+                    continue
+
                 props_list_by_filoc_name[filoc_name][row_id][prop_name] = v
 
         # pop out join indexes and merge then row by row to filoc props
         indexes = props_list_by_filoc_name.pop(self.join_level_name)
-        for filoc_props_list in props_list_by_filoc_name.values():
+        for filoc_name, filoc_props_list in props_list_by_filoc_name.items():
+            join_keys = self.join_keys_by_filoc_name[filoc_name]
             for index, props in zip(indexes, filoc_props_list):
-                props.update(index)
+                # todo: iterate through join_keys instead of index and raise explicit exception if join_key missing?
+                relevant_index = { k: v for (k, v) in index.items() if k in join_keys}
+                props.update(relevant_index)
 
         # delegate writing to
         for filoc_name, filoc_props_list in props_list_by_filoc_name.items():

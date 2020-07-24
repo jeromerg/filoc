@@ -1,7 +1,8 @@
+import json
 import logging
 import os
 from collections import OrderedDict
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
 
 from fsspec import AbstractFileSystem
 from ordered_set import OrderedSet
@@ -20,10 +21,12 @@ _missing_key = object()
 def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_singleton):
     # validate file_content and coerce to list
     if is_singleton:
-        assert isinstance(file_content, dict), f"Invalid type for loaded file '{path}'. Expected dict, got {type(file_content).__name__}"
+        if not isinstance(file_content, dict):
+            raise ValueError(f"Invalid type for loaded file '{path}'. Expected dict, got {type(file_content).__name__}")
         unfiltered_result = [file_content]
     else:
-        assert isinstance(file_content, list), f"Invalid type for loaded file '{path}'. Expected list, got {type(file_content).__name__}"
+        if not isinstance(file_content, list):
+            raise ValueError(f"Invalid type for loaded file '{path}'. Expected list, got {type(file_content).__name__}")
         unfiltered_result = file_content
 
     # filter
@@ -44,8 +47,15 @@ def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_si
 def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bool) -> Union[dict, list]:
     # validate file_content and coerce to list
     if is_singleton:
-        assert len(props_list) == 1, f"Trying to save {len(props_list)} items into singleton file {path}"
-        return props_list[0]
+        if len(props_list) == 1:
+            return props_list[0]
+        elif len(props_list) == 0:
+            raise ValueError('props_list is empty')
+        else:
+            first_item = props_list[0]
+            for idx, item in enumerate(props_list[1:]):
+                if first_item != item:
+                    raise ValueError(f'Trying to save {len(props_list)} props to singleton file {path} with different values:\nItem #0: {json.dumps(first_item)}\nItem #{idx + 1}: {json.dumps(item)}')
     else:
         return props_list
 
@@ -159,21 +169,23 @@ def merge_tables(table_by_name : Dict[str, List[Dict[str, Any]]], join_key_names
     return _unpivot(resulting_pivot, join_key_names, index_prefix)
 
 
-def _merge_pivots_recursive(pi1, pi2, remaining_key_names : List[str]):
+def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[str]):
     if len(remaining_key_names) == 0:
         pi1.update(pi2)
     else:
-        cp1 = pi1.pop(_missing_key, None)
-        cp2 = pi2.pop(_missing_key, None)
+        cp1 = pi1.pop(_missing_key) if _missing_key in pi1 else OrderedDict()
+        cp2 = pi2.pop(_missing_key) if _missing_key in pi2 else OrderedDict()
         all_keys = OrderedSet(pi1) | OrderedSet(pi2)
 
         if len(all_keys) == 0:
             _merge_pivots_recursive(cp1, cp2, remaining_key_names[1:])
+            pi1[_missing_key] = cp1
         else:
             for k in all_keys:
                 v1 = pi1.get(k, cp1)
                 v2 = pi2.get(k, cp2)
                 _merge_pivots_recursive(v1, v2, remaining_key_names[1:])
+                pi1[k] = v1
 
 
 def _pivot(table_values : List[Dict[str, Any]], key_names : List[str], prefix : str):
