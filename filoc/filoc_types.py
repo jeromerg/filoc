@@ -7,16 +7,16 @@ from fsspec import AbstractFileSystem
 
 TContent             = TypeVar('TContent')
 TContents            = TypeVar('TContents')
-PresetContentTypes   = Literal[None, 'json', 'pandas']
-PresetFiLocFileTypes = Literal[None, 'json', 'yaml', 'pickle', 'csv']
+FrontendTypes        = Literal[None, 'json', 'pandas']
+PresetBackendTypes   = Literal[None, 'json', 'yaml', 'pickle', 'csv']
 ContentPath          = str
 Props                = Dict[str, Any]
 PropsConstraints     = Dict[str, Any]
 PropsList            = List[Props]
-PathReader           = Union[
+BackendReader        = Union[
     Callable[[AbstractFileSystem, ContentPath], PropsList],
     Callable[[AbstractFileSystem, ContentPath, Props], PropsList]]
-PathWriter           = Union[
+BackendWriter        = Union[
     Callable[[AbstractFileSystem, ContentPath, PropsList], None],
     Callable[[AbstractFileSystem, ContentPath, PropsList, Props], None]]
 PropsListToContent   = Callable[[PropsList], TContent]

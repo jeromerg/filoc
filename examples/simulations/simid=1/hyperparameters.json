@@ -1,0 +1,4 @@
+{
+  "learning_rate" : 0.01,
+  "bellman_gamma" : 0.95
+}

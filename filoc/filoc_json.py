@@ -2,8 +2,8 @@ import logging
 from typing import Dict, Any, List, Optional, Iterable
 
 from .filoc_base import FilocBase, FilocCompositeBase
-from .filoc_types import PresetFiLocFileTypes
-from .utils import get_default_file_type_reader, get_default_file_type_writer
+from .filoc_types import PresetBackendTypes
+from .utils import get_default_backend_reader, get_default_backend_writer
 
 log = logging.getLogger('filoc')
 
@@ -29,7 +29,7 @@ class FilocJson(FilocBase[Dict[str, Any], List[Dict[str, Any]]]):
     def __init__(
             self,
             locpath        : str                 ,
-            file_type      : PresetFiLocFileTypes = 'json',
+            file_type      : PresetBackendTypes = 'json',
             file_singleton : bool                 = True,
             writable       : bool                 = False,
             cache_locpath  : str                  = None,
@@ -38,8 +38,8 @@ class FilocJson(FilocBase[Dict[str, Any], List[Dict[str, Any]]]):
         super().__init__(
             locpath,
             writable,
-            get_default_file_type_reader(file_type, file_singleton),
-            get_default_file_type_writer(file_type, file_singleton),
+            get_default_backend_reader(file_type, file_singleton),
+            get_default_backend_writer(file_type, file_singleton),
             _props_list_to_content_converter,
             _props_list_to_contents_converter,
             _content_to_props_list_converter,

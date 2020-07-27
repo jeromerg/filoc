@@ -5,8 +5,8 @@ import pandas
 from pandas import DataFrame
 
 from .filoc_base import FilocBase, FilocCompositeBase
-from .filoc_json import get_default_file_type_reader, get_default_file_type_writer
-from .filoc_types import PresetFiLocFileTypes
+from .filoc_json import get_default_backend_reader, get_default_backend_writer
+from .filoc_types import PresetBackendTypes
 
 log = logging.getLogger('filoc')
 
@@ -41,7 +41,7 @@ class FilocPandas(FilocBase[DataFrame, DataFrame]):
     def __init__(
             self,
             locpath        : str                  ,
-            file_type      : PresetFiLocFileTypes = 'json',
+            file_type      : PresetBackendTypes = 'json',
             file_singleton : bool                 = True,
             writable       : bool                 = False,
             cache_locpath  : str                  = None,
@@ -50,8 +50,8 @@ class FilocPandas(FilocBase[DataFrame, DataFrame]):
         super().__init__(
             locpath,
             writable,
-            get_default_file_type_reader(file_type, file_singleton),
-            get_default_file_type_writer(file_type, file_singleton),
+            get_default_backend_reader(file_type, file_singleton),
+            get_default_backend_writer(file_type, file_singleton),
             _props_list_to_dataframe_converter,
             _props_list_to_dataframe_converter,
             _dataframe_to_props_list_converter,

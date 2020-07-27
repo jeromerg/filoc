@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, Tuple, Generic, Iterable, Set
 from frozendict import frozendict
 
 from .filoc_opener import FilocOpener, mix_dicts
-from .filoc_types import TContent, TContents, PropsConstraints, Props, PropsList, PathReader, PathWriter, \
+from .filoc_types import TContent, TContents, PropsConstraints, Props, PropsList, BackendReader, BackendWriter, \
     PropsListToContent, PropsListToContents, ContentToPropsList, ContentsToPropsList, ContentPath
 from .utils import merge_tables
 
@@ -53,8 +53,8 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
             self,
             locpath                : str                 ,
             writable               : bool                ,
-            path_reader            : PathReader          ,
-            path_writer            : PathWriter          ,
+            backend_reader         : BackendReader       ,
+            backend_writer         : BackendWriter       ,
             props_list_to_content  : PropsListToContent  ,
             props_list_to_contents : PropsListToContents ,
             content_to_props_list  : ContentToPropsList  ,
@@ -68,8 +68,8 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
         FilocOpener.__init__(self, locpath, writable=writable)
 
         # reader and writer
-        self.props_reader           = path_reader
-        self.props_writer           = path_writer
+        self.backend_reader         = backend_reader
+        self.backend_writer         = backend_writer
         self.props_list_to_content  = props_list_to_content
         self.props_list_to_contents = props_list_to_contents
         self.content_to_props_list  = content_to_props_list
@@ -216,7 +216,7 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
 
             log.info(f'{dry_run_log_prefix}Saving to {path}')
             if not dry_run:
-                self.props_writer(self.fs, path, other_props_list, path_props)
+                self.backend_writer(self.fs, path, other_props_list, path_props)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
     def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, datetime, Props]:
@@ -234,7 +234,7 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
 
     def _read_path(self, path : ContentPath, constraints : PropsConstraints):
         log.info(f'Reading content for {path}')
-        content = self.props_reader(self.fs, path, constraints)
+        content = self.backend_reader(self.fs, path, constraints)
         log.info(f'Read content for {path}')
         return content
 
@@ -316,7 +316,7 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         props_list_by_filoc_name = {
             filoc_name : [ OrderedDict() for _ in range(len(props_list)) ]
             for filoc_name, filoc in self.filoc_by_name.items()
-            if filoc.writable and filoc.props_writer is not None
+            if filoc.writable and filoc.backend_writer is not None
         }
         props_list_by_filoc_name[self.join_level_name] = [ OrderedDict() for _ in range(len(props_list)) ]
 

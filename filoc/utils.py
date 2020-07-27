@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Union, Optional
 from fsspec import AbstractFileSystem
 from ordered_set import OrderedSet
 
-from filoc.filoc_types import PropsList, PresetFiLocFileTypes, ContentPath, PropsConstraints, Props
+from filoc.filoc_types import PropsList, PresetBackendTypes, ContentPath, PropsConstraints, Props
 
 log = logging.getLogger('filoc_utils')
 
@@ -61,7 +61,7 @@ def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bo
 
 
 # noinspection PyPackageRequirements
-def get_default_file_type_reader(file_type : PresetFiLocFileTypes, is_singleton : bool):
+def get_default_backend_reader(file_type : PresetBackendTypes, is_singleton : bool):
     if file_type == 'json':
         import json
 
@@ -102,7 +102,7 @@ def get_default_file_type_reader(file_type : PresetFiLocFileTypes, is_singleton 
         raise ValueError(f"Unsupported file type {file_type}")
 
 
-def get_default_file_type_writer(file_type : PresetFiLocFileTypes, is_singleton : bool):
+def get_default_backend_writer(file_type : PresetBackendTypes, is_singleton : bool):
     if file_type == 'json':
         import json
 
