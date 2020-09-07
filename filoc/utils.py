@@ -3,7 +3,7 @@ import logging
 from collections import OrderedDict
 from typing import Dict, Any, List, Union
 
-from ordered_set import OrderedSet
+from orderedset import OrderedSet
 
 from filoc.contract import PropsList
 
