@@ -23,7 +23,8 @@ setuptools.setup(
         'parse',
         'frozendict',
         'orderedset',
-        'pandas'
+        'pandas',
+        'pyyaml',
     ],
     python_requires='>=3',
 )

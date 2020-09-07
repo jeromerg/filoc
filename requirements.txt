@@ -1,10 +1,11 @@
-fsspec
-parse
 frozendict
+fsspec
 orderedset
-
-# test
 pandas
-retry
+parse
 pyyaml
+
+# build and test
+flake8
+pytest
 setuptools

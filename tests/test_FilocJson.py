@@ -83,8 +83,6 @@ class TestFilocJson(unittest.TestCase):
             # f.flush()
             # os.fsync(f.fileno())
 
-        # @retry(tries=10, delay=1)
-        # def act_assert():
         print("re read_contents 2")
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
