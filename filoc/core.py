@@ -10,77 +10,43 @@ from typing import Dict, Any, Optional, Tuple, Generic, Iterable, Set
 
 from frozendict import frozendict
 
-from .filoc_opener import FilocOpener, mix_dicts
-from .filoc_types import TContent, TContents, PropsConstraints, Props, PropsList, BackendReader, BackendWriter, \
-    PropsListToContent, PropsListToContents, ContentToPropsList, ContentsToPropsList, ContentPath
+from .contract import TContent, TContents, PropsConstraints, Props, PropsList, ContentPath, FilocContract, \
+    FrontendContract, BackendContract
+from .filoc_io import FilocIO, mix_dicts
 from .utils import merge_tables
 
 log = logging.getLogger('filoc')
 
 
-# ----------------
-# Filoc (Contract)
-# ----------------
-class Filoc(Generic[TContent, TContents], FilocOpener, ABC):
-    def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
-        raise NotImplementedError('Abstract')
-
-    def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
-        raise NotImplementedError('Abstract')
-
-    def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
-        raise NotImplementedError('Abstract')
-
-    def read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
-        raise NotImplementedError('Abstract')
-
-    def write_content(self, content : TContent, dry_run=False):
-        raise NotImplementedError('Abstract')
-
-    def write_contents(self, contents : TContents, dry_run=False):
-        raise NotImplementedError('Abstract')
-
-    def write_props_list(self, props_list : PropsList, dry_run=False):
-        raise NotImplementedError('Abstract')
-
-
 # ---------
 # FilocBase
 # ---------
-class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocOpener, ABC):
+class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], FilocIO, ABC):
     # noinspection PyDefaultArgument
     def __init__(
             self,
             locpath                : str                 ,
             writable               : bool                ,
-            backend_reader         : BackendReader       ,
-            backend_writer         : BackendWriter       ,
-            props_list_to_content  : PropsListToContent  ,
-            props_list_to_contents : PropsListToContents ,
-            content_to_props_list  : ContentToPropsList  ,
-            contents_to_props_list : ContentsToPropsList ,
+            frontend               : FrontendContract[TContent, TContents],
+            backend                : BackendContract     ,
             cache_locpath          : str                 ,
             timestamp_col          : str                 ,
     ):
         """
         if cache_locpath is relative, then it will be relative to result_locpath
         """
-        FilocOpener.__init__(self, locpath, writable=writable)
+        FilocIO.__init__(self, locpath, writable=writable)
 
         # reader and writer
-        self.backend_reader         = backend_reader
-        self.backend_writer         = backend_writer
-        self.props_list_to_content  = props_list_to_content
-        self.props_list_to_contents = props_list_to_contents
-        self.content_to_props_list  = content_to_props_list
-        self.contents_to_props_list = contents_to_props_list
+        self.frontend               = frontend
+        self.backend                = backend
 
         # cache loc
         self.cache_loc = None
         if cache_locpath is not None:
             if not os.path.isabs(cache_locpath):
                 cache_locpath = self.root_folder + '/' + cache_locpath
-            self.cache_loc = FilocOpener(cache_locpath, writable=True)
+            self.cache_loc = FilocIO(cache_locpath, writable=True)
         self.timestamp_col = timestamp_col
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
@@ -93,14 +59,12 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
         constraints = mix_dicts(constraints, constraints_kwargs)
         self.get_path(constraints)  # validates, that pat_props points to a single file
         props_list = self.read_props_list(constraints)
-        content = self.props_list_to_content(props_list)
-        return content
+        return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
         constraints = mix_dicts(constraints, constraints_kwargs)
         props_list  = self.read_props_list(constraints)
-        contents    = self.props_list_to_contents(props_list)
-        return contents
+        return self.frontend.read_contents(props_list)
 
     def read_props_list(self, props_list : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
         props_list = mix_dicts(props_list, constraints_kwargs)
@@ -179,13 +143,13 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
     def write_content(self, content : TContent, dry_run=False):
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
-        props_list = self.content_to_props_list(content)
+        props_list = self.frontend.write_content(content)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_contents(self, contents : TContents, dry_run=False):
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
-        props_list = self.contents_to_props_list(contents)
+        props_list = self.frontend.write_contents(contents)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_props_list(self, props_list : PropsList, dry_run=False):
@@ -216,7 +180,7 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
 
             log.info(f'{dry_run_log_prefix}Saving to {path}')
             if not dry_run:
-                self.backend_writer(self.fs, path, other_props_list, path_props)
+                self.backend.write(self.fs, path, other_props_list)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
     def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, datetime, Props]:
@@ -234,7 +198,7 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
 
     def _read_path(self, path : ContentPath, constraints : PropsConstraints):
         log.info(f'Reading content for {path}')
-        content = self.backend_reader(self.fs, path, constraints)
+        content = self.backend.read(self.fs, path, constraints)
         log.info(f'Read content for {path}')
         return content
 
@@ -242,30 +206,23 @@ class FilocBase(Generic[TContent, TContents], Filoc[TContent, TContents], FilocO
 # ------------------
 # FilocCompositeBase
 # ------------------
-class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents], ABC):
+class FilocComposite(Generic[TContent, TContents], FilocContract[TContent, TContents], ABC):
 
     def __init__(
             self,
-            filoc_by_name           : Dict[str, FilocBase],
-            props_list_to_content   : PropsListToContent  ,
-            props_list_to_contents  : PropsListToContents ,
-            content_to_props_list   : ContentToPropsList  ,
-            contents_to_props_list  : ContentsToPropsList ,
-            join_keys_by_filoc_name : Optional[Dict[str, Iterable[str]]] = None,
-            join_level_name         : str = 'index'       ,
-            join_separator          : str = '.'           ,
+            filoc_by_name           : Dict[str, Filoc],
+            frontend                : FrontendContract,
+            join_keys_by_filoc_name : Optional[Dict[str, Iterable[str]]],
+            join_level_name         : str,
+            join_separator          : str,
     ):
-        super(Filoc).__init__()
 
         assert isinstance(filoc_by_name, dict)
 
-        self.filoc_by_name          = filoc_by_name
-        self.join_level_name        = join_level_name
-        self.join_separator        = join_separator
-        self.props_list_to_content  = props_list_to_content
-        self.props_list_to_contents = props_list_to_contents
-        self.content_to_props_list  = content_to_props_list
-        self.contents_to_props_list = contents_to_props_list
+        self.frontend        = frontend
+        self.filoc_by_name   = filoc_by_name
+        self.join_level_name = join_level_name
+        self.join_separator  = join_separator
 
         if join_keys_by_filoc_name is None:
             self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
@@ -283,12 +240,12 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
         constraints = mix_dicts(constraints, constraints_kwargs)
         props_list = self.read_props_list(constraints)
-        return self.props_list_to_content(props_list)
+        return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
         constraints = mix_dicts(constraints, constraints_kwargs)
         props_list = self.read_props_list(constraints)
-        return self.props_list_to_contents(props_list)
+        return self.frontend.read_contents(props_list)
 
     def read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
         constraints = mix_dicts(constraints, constraints_kwargs)
@@ -304,11 +261,11 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         return merge_tables(props_list_by_filoc_name, list(join_key_names), self.join_separator, self.join_level_name)
 
     def write_content(self, content : TContent, dry_run=False):
-        props_list = self.content_to_props_list(content)
+        props_list = self.frontend.write_content(content)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_contents(self, contents : TContents, dry_run=False):
-        props_list = self.contents_to_props_list(contents)
+        props_list = self.frontend.write_contents(contents)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_props_list(self, props_list : PropsList, dry_run=False):
@@ -316,7 +273,7 @@ class FilocCompositeBase(Generic[TContent, TContents], Filoc[TContent, TContents
         props_list_by_filoc_name = {
             filoc_name : [ OrderedDict() for _ in range(len(props_list)) ]
             for filoc_name, filoc in self.filoc_by_name.items()
-            if filoc.writable and filoc.backend_writer is not None
+            if filoc.writable
         }
         props_list_by_filoc_name[self.join_level_name] = [ OrderedDict() for _ in range(len(props_list)) ]
 

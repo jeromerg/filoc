@@ -6,7 +6,7 @@ import time
 import unittest
 from pathlib import Path
 
-from filoc.filoc_json import FilocJson
+from filoc import filoc_json, FilocIO
 
 
 def touch_file(file_path):
@@ -30,7 +30,7 @@ class TestFilocJson(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_read_contents(self):
-        wloc = FilocJson(self.path_fmt, writable=True)
+        wloc = FilocIO(self.path_fmt, writable=True)
         with wloc.open({"simid": 1, "epid": 10}, "w") as f:
             json.dump({'a': 100}, f)
         with wloc.open({"simid": 1, "epid": 20}, "w") as f:
@@ -40,7 +40,7 @@ class TestFilocJson(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 20}, "w") as f:
             json.dump({'a': 400}, f)
 
-        loc = FilocJson(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]',
@@ -57,7 +57,7 @@ class TestFilocJson(unittest.TestCase):
 
     def test_read_contents_with_cache(self):
         print("write files")
-        wloc = FilocJson(self.path_fmt, writable=True)
+        wloc = FilocIO(self.path_fmt, writable=True)
         with wloc.open({"simid": 1, "epid": 10}, "w") as f:
             json.dump({'a': 100}, f)
         with wloc.open({"simid": 1, "epid": 20}, "w") as f:
@@ -67,7 +67,7 @@ class TestFilocJson(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 20}, "w") as f:
             json.dump({'a': 400}, f)
 
-        loc = FilocJson(self.path_fmt, cache_locpath='.cache')
+        loc = filoc_json(self.path_fmt, cache_locpath='.cache')
         print("read_contents 1")
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
@@ -93,7 +93,7 @@ class TestFilocJson(unittest.TestCase):
         # act_assert()
 
         # Trick to test: signature change does not take effect, because of cache
-        loc = FilocJson(self.path_fmt, cache_locpath='.cache')
+        loc = filoc_json(self.path_fmt, cache_locpath='.cache')
         print("re read_contents 3")
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
@@ -101,7 +101,7 @@ class TestFilocJson(unittest.TestCase):
                          json.dumps(p, sort_keys=True))
 
     def test_write_contents(self):
-        wloc = FilocJson(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
         wloc.write_props_list([
             {"simid": 1, "epid": 10, 'a': 100},
             {"simid": 1, "epid": 20, 'a': 200},
@@ -109,7 +109,7 @@ class TestFilocJson(unittest.TestCase):
             {"simid": 2, "epid": 20, 'a': 400},
         ])
 
-        wloc = FilocJson(self.path_fmt)
+        wloc = FilocIO(self.path_fmt)
         with wloc.open({"simid": 1, "epid": 10}) as f:
             c1 = json.load(f)
         with wloc.open({"simid": 1, "epid": 20}) as f:

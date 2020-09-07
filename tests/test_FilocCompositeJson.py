@@ -3,10 +3,8 @@ import shutil
 import tempfile
 import unittest
 
-from filoc.filoc_json import FilocJson, FilocCompositeJson
-
-
 # noinspection DuplicatedCode
+from filoc import filoc_json, FilocIO
 
 
 class TestMultiloc(unittest.TestCase):
@@ -16,10 +14,10 @@ class TestMultiloc(unittest.TestCase):
         self.path_fmt_simid_config = self.test_dir + r'/somewhere1/simid={simid:d}/config.json'
         self.path_fmt_hyp = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
         self.path_fmt_res = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
-        self.conf_wloc      = FilocJson(self.path_fmt_simid_config, writable=True)
-        self.conf_loc      = FilocJson(self.path_fmt_simid_config, writable=False)
-        self.hyp_loc      = FilocJson(self.path_fmt_hyp, writable=True)
-        self.res_loc      = FilocJson(self.path_fmt_res, writable=True)
+        self.conf_wloc      = filoc_json(self.path_fmt_simid_config, writable=True)
+        self.conf_loc      = filoc_json(self.path_fmt_simid_config, writable=False)
+        self.hyp_loc      = filoc_json(self.path_fmt_hyp, writable=True)
+        self.res_loc      = filoc_json(self.path_fmt_res, writable=True)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -34,7 +32,7 @@ class TestMultiloc(unittest.TestCase):
             {"simid": 2, "confA" : "R"},
         ])
 
-        mloc = FilocCompositeJson({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
+        mloc = filoc_json({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
         mloc.write_contents([
             {"index.simid": 1, "index.epid": 10, "hyp.a": 100, "res.b": 1000},
             {"index.simid": 1, "index.epid": 20, "hyp.a": 200, "res.b": 2000},
@@ -42,7 +40,7 @@ class TestMultiloc(unittest.TestCase):
             {"index.simid": 2, "index.epid": 20, "hyp.a": 400, "res.b": 4000},
         ])
 
-        wloc = FilocJson(self.path_fmt_hyp)
+        wloc = FilocIO(self.path_fmt_hyp)
         with wloc.open({"simid": 1, "epid": 10}) as f: hyp1 = json.load(f)
         with wloc.open({"simid": 1, "epid": 20}) as f: hyp2 = json.load(f)
         with wloc.open({"simid": 2, "epid": 10}) as f: hyp3 = json.load(f)
@@ -53,7 +51,7 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual('{"a": 300}', json.dumps(hyp3, sort_keys=True))
         self.assertEqual('{"a": 400}', json.dumps(hyp4, sort_keys=True))
 
-        wloc = FilocJson(self.path_fmt_res)
+        wloc = FilocIO(self.path_fmt_res)
         with wloc.open({"simid": 1, "epid": 10}) as f: hyp1 = json.load(f)
         with wloc.open({"simid": 1, "epid": 20}) as f: hyp2 = json.load(f)
         with wloc.open({"simid": 2, "epid": 10}) as f: hyp3 = json.load(f)

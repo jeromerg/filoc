@@ -45,7 +45,7 @@ def mix_dicts(dict1, dict2):
 # -------------------
 # Base Class RawFiloc
 # -------------------
-class FilocOpener:
+class FilocIO:
     def __init__(self, locpath: str, writable=False) -> None:
         super().__init__()
         self.locpath     = locpath

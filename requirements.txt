@@ -6,3 +6,5 @@ orderedset
 # test
 pandas
 retry
+pyyaml
+setuptools

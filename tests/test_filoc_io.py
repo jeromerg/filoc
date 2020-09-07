@@ -5,7 +5,7 @@ import unittest
 from io import UnsupportedOperation
 from pathlib import Path
 
-from filoc.filoc_opener import FilocOpener
+from filoc.filoc_io import FilocIO
 
 
 def touch_file(file_path):
@@ -14,7 +14,7 @@ def touch_file(file_path):
 
 
 # noinspection DuplicatedCode
-class TestRawFiloc(unittest.TestCase):
+class TestFilocIO(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')
@@ -24,26 +24,26 @@ class TestRawFiloc(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_get_path_properties(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         props = loc.get_path_properties(rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
         self.assertEqual(len(props), 2)
         self.assertEqual(props['simid'], 12)
         self.assertEqual(props['epid'], 102)
 
     def test_get_path(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         path1 = loc.get_path(simid=12, epid=102)
         self.assertEqual(path1, rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
         # Todo: test other formattings: float, string
 
     def test_get_glob_path(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         path1 = loc.get_glob_path(epid=102)
         self.assertEqual(path1, rf"{self.test_dir}/simid=?*/epid=102/hyperparameters.json")
         # Todo: test other formattings: float, string
 
     def test_find_paths(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         touch_file(loc.get_path(simid=1, epid=10))
         touch_file(loc.get_path(simid=1, epid=20))
         touch_file(loc.get_path(simid=2, epid=10))
@@ -65,7 +65,7 @@ class TestRawFiloc(unittest.TestCase):
         self.assertListEqual(p, [])
 
     def test_find_paths_and_path_props(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         touch_file(loc.get_path(simid=1, epid=10))
         touch_file(loc.get_path(simid=1, epid=20))
         touch_file(loc.get_path(simid=2, epid=10))
@@ -87,19 +87,19 @@ class TestRawFiloc(unittest.TestCase):
         self.assertListEqual(p, [])
 
     def test_exists(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         self.assertEqual(loc.exists(simid=1, epid=10), False)
         touch_file(loc.get_path(simid=1, epid=10))
         self.assertEqual(loc.exists(simid=1, epid=10), True)
 
     def test_open_write_readonly(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         with self.assertRaises(UnsupportedOperation):
             with loc.open(dict(simid=1, epid=10), 'w') as f:
                 f.write("coucou")
 
     def test_open_write_read(self):
-        loc = FilocOpener(self.path_fmt, writable=True)
+        loc = FilocIO(self.path_fmt, writable=True)
         with loc.open(dict(simid=1, epid=10), 'w') as f:
             f.write("coucou")
         with loc.open(dict(simid=1, epid=10), 'r') as f:
@@ -107,13 +107,13 @@ class TestRawFiloc(unittest.TestCase):
         self.assertEqual(s, "coucou")
 
     def test_delete_readonly(self):
-        loc = FilocOpener(self.path_fmt)
+        loc = FilocIO(self.path_fmt)
         touch_file(loc.get_path(simid=1, epid=10))
         with self.assertRaises(UnsupportedOperation):
             loc.delete(dict(simid=1, epid=10))
 
     def test_delete(self):
-        loc = FilocOpener(self.path_fmt, writable=True)
+        loc = FilocIO(self.path_fmt, writable=True)
         touch_file(loc.get_path(simid=1, epid=10))
         self.assertEqual(loc.exists(simid=1, epid=10), True)
         loc.delete(dict(simid=1, epid=10))

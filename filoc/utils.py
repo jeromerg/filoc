@@ -1,23 +1,17 @@
 import json
 import logging
-import os
 from collections import OrderedDict
-from typing import Dict, Any, List, Union, Optional
+from typing import Dict, Any, List, Union
 
-from fsspec import AbstractFileSystem
 from ordered_set import OrderedSet
 
-from filoc.filoc_types import PropsList, PresetBackendTypes, ContentPath, PropsConstraints, Props
+from filoc.contract import PropsList
 
 log = logging.getLogger('filoc_utils')
 
 _missing_key = object()
 
 
-# ---------------------
-# Data File Helpers
-# ---------------------
-# Todo: remove useless constraints, that are ensured by path_props
 def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_singleton):
     # validate file_content and coerce to list
     if is_singleton:
@@ -58,98 +52,6 @@ def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bo
                     raise ValueError(f'Trying to save {len(props_list)} props to singleton file {path} with different values:\nItem #0: {json.dumps(first_item)}\nItem #{idx + 1}: {json.dumps(item)}')
     else:
         return props_list
-
-
-# noinspection PyPackageRequirements
-def get_default_backend_reader(file_type : PresetBackendTypes, is_singleton : bool):
-    if file_type == 'json':
-        import json
-
-        def json_content_reader(fs: AbstractFileSystem, path: ContentPath, constraints : PropsConstraints) -> PropsList:
-            with fs.open(path) as f:
-                return filter_and_coerce_loaded_file_content(path, json.load(f), constraints, is_singleton)
-
-        return json_content_reader
-
-    elif file_type == 'yaml':
-        import yaml
-
-        def yaml_content_reader(fs: AbstractFileSystem, path: ContentPath, constraints : PropsConstraints) -> PropsList:
-            with fs.open(path) as f:
-                return filter_and_coerce_loaded_file_content(path, yaml.load(f), constraints, is_singleton)
-
-        return yaml_content_reader
-
-    elif file_type == 'csv':
-        import csv
-
-        def csv_content_reader(fs: AbstractFileSystem, path: ContentPath, constraints : PropsConstraints) -> PropsList:
-            with fs.open(path) as f:
-                return filter_and_coerce_loaded_file_content(path, csv.DictReader(f), constraints, is_singleton)
-
-        return csv_content_reader
-
-    elif file_type == 'pickle':
-        import pickle
-
-        def pickle_content_reader(fs: AbstractFileSystem, path: ContentPath, constraints : PropsConstraints) -> PropsList:
-            with fs.open(path) as f:
-                return filter_and_coerce_loaded_file_content(path, pickle.load(f), constraints, is_singleton)
-
-        return pickle_content_reader
-
-    else:
-        raise ValueError(f"Unsupported file type {file_type}")
-
-
-def get_default_backend_writer(file_type : PresetBackendTypes, is_singleton : bool):
-    if file_type == 'json':
-        import json
-
-        # noinspection PyUnusedLocal
-        def json_content_writer(fs: AbstractFileSystem, path: ContentPath, props_list : PropsList, path_props : Props):
-            fs.makedirs(os.path.dirname(path), exist_ok=True)
-            with fs.open(path, 'w') as f:
-                return json.dump(coerce_file_content_to_write(path, props_list, is_singleton), f, indent=2)
-
-        return json_content_writer
-
-    elif file_type == 'yaml':
-        # noinspection PyPackageRequirements
-        import yaml
-
-        # noinspection PyUnusedLocal
-        def yaml_content_writer(fs: AbstractFileSystem, path: ContentPath, props_list: PropsList, path_props : Props):
-            fs.makedirs(os.path.dirname(path), exist_ok=True)
-            with fs.open(path, 'w') as f:
-                return yaml.dump(coerce_file_content_to_write(path, props_list, is_singleton), f)
-
-        return yaml_content_writer
-
-    elif file_type == 'csv':
-        import csv
-
-        # noinspection PyUnusedLocal
-        def csv_content_writer(fs: AbstractFileSystem, path: ContentPath, props_list: PropsList, path_props : Props):
-            fs.makedirs(os.path.dirname(path), exist_ok=True)
-            with fs.open(path, 'w') as f:
-                return csv.DictWriter(coerce_file_content_to_write(path, props_list, is_singleton), f)
-
-        return csv_content_writer
-
-    elif file_type == 'pickle':
-        import pickle
-
-        # noinspection PyUnusedLocal
-        def pickle_content_writer(fs: AbstractFileSystem, path: ContentPath, props_list: PropsList, path_props : Props):
-            fs.makedirs(os.path.dirname(path), exist_ok=True)
-            with fs.open(path, 'w') as f:
-                return pickle.dump(coerce_file_content_to_write(path, props_list, is_singleton), f)
-
-        return pickle_content_writer
-
-    else:
-        raise ValueError(f"Unsupported file type {file_type}")
 
 
 # ---------------------
