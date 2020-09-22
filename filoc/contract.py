@@ -39,6 +39,9 @@ class FrontendContract(Generic[TContent, TContents], ABC):
 
 
 class FilocContract(Generic[TContent, TContents], ABC):
+    def lock(self):
+        raise NotImplementedError('Abstract')
+
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         raise NotImplementedError('Abstract')
 

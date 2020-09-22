@@ -111,15 +111,15 @@ class FilocIO:
         return self.fs.exists(self.get_path(path_props))
 
     def open(self, path_props : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):
-        is_writing = len(set(mode) & set("wa+"))
+        is_writing = len(set(mode) & set("wa+")) > 0
         if is_writing and not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
         path = self.get_path(path_props)
         dirname = os.path.dirname(path)
 
-        if not self.fs.exists(dirname) and is_writing > 0:
-            self.fs.makedirs(dirname)
+        if is_writing:
+            self.fs.makedirs(dirname, exist_ok=True)
 
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 

@@ -3,28 +3,15 @@
 FiLoc File Locator
 ==================
 
-Filoc makes the saving, reading and analysis of files easy: You files are the database. 
+Save, read and analyze files in structured folders: Your files are the database. 
 
 Machine Learning Swiss Knife
 ----------------------------
-In machine learning, we use it to schedule, record, and analyze hundreds of machine learning experiences 
-without the need of any service.
 
-### Schedule Simulations
+See the concrete the ML trip [here](./example_ml.ipynb)
 
-Prepare hyperparameters for all your simulations at one place in a pandas dataframe or in an excel sheet. 
-Save the simulation configurations into the folder structure of your choice, along with the processing state.
-
-### Record Simulations
-
-In the algorithm script, you do not need to introduce any dependency to *filoc*. Just open the files previously
-written in the simulation folder. Nevertheless, you can also use *filoc* to harmonize your file handling. 
-
-### Analyze Simulations
-
-While the simulation are running or after, you can get insight on any information about the current results.
- Filoc doesn't do any difference between the simulation state, the hyperparameters and the result files of your 
- simulations: it handles all in the same way and displays statistical analysis along with the hyperparameters.
+In machine learning, we use it to create simulation hyperparameters set, schedule simulations, record results, and analyze hundreds of machine learning experiences 
+without the need of any database nor external services.
 
 
 Basic

@@ -1,14 +1,22 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
+import socket
+import threading
+import time
+import hashlib
 import pickle
 from abc import ABC
 from collections import OrderedDict
 from datetime import datetime
 from io import UnsupportedOperation
-from typing import Dict, Any, Optional, Tuple, Generic, Iterable, Set
+from typing import Dict, Any, NamedTuple, Optional, Tuple, Generic, Iterable, Set
+import base64
+from uuid import uuid4
 
 from frozendict import frozendict
+import fsspec
 
 from .contract import TContent, TContents, PropsConstraints, Props, PropsList, ContentPath, FilocContract, \
     FrontendContract, BackendContract
@@ -18,10 +26,20 @@ from .utils import merge_tables
 log = logging.getLogger('filoc')
 
 
+class LockException(Exception):
+    def __init__(self, *args):
+        Exception.__init__(self, *args)
+
+
+class RunningCache(NamedTuple):
+    key : Props # key-values expected by cache_locpath
+    cache_by_file_path_props : Dict[Props, Dict[str, Any]] # key-values expected by (this) locpath props
+
+
 # ---------
 # FilocBase
 # ---------
-class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], FilocIO, ABC):
+class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
     # noinspection PyDefaultArgument
     def __init__(
             self,
@@ -49,6 +67,69 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
             self.cache_loc = FilocIO(cache_locpath, writable=True)
         self.timestamp_col = timestamp_col
 
+    @contextmanager
+    def lock(self, attempt_count: float = 10, attempt_secs: float = 1.0):
+        # remark: fsspec backends do not all support the 'x' exclusive mode, so we cannot use exclusive write mode to 
+        # synchronize the writing into a single lock file. So each call to `lock()` tries to write its own lock file
+        # and check afterward, if he won the run, by checking the modified timestamp of all lock files. It assumes, that the
+        # file system sets timestamps in the same order as it processes the files (TODO: Verify assumption on distributed file systems)
+
+        # build a lock id. Scope of lock is (process x thread x root_folder)
+        host      = socket.gethostname()
+        pid       = os.getpid()
+        thread_id = threading.get_ident()
+        lock_id   = f'{host}_{pid}_{thread_id}'
+        lock_file = f'{self.root_folder}/.lock_{lock_id}'
+
+        for attempt in range(attempt_count):
+            is_owner = self._is_lock_owner_or_none_if_no_lock(lock_id)
+
+            if is_owner == True: 
+                yield lock_id
+                return
+            elif is_owner == False:
+                time.sleep(attempt_secs)
+                continue
+
+            # else we try to acquire the lock
+            self.fs.makedirs(self.root_folder, exist_ok=True)
+            with self.fs.open(lock_file, 'w') as f:
+                json.dump({
+                    'host' : socket.gethostname(),
+                    'pid' : os.getpid(),
+                    'thread' : threading.get_ident(),
+                }, f)
+
+            if self._is_lock_owner_or_none_if_no_lock(lock_id) == True:
+                yield lock_id
+                return
+
+            # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
+            try:
+                self.fs.delete(lock_file)
+            except Exception as e:
+                log.error(f"Lock file {lock_file} could not be deleted", e)        
+        raise LockException(f"Failed to acquire the file lock after {attempt_count} attempts")
+
+    def _is_lock_owner_or_none_if_no_lock(self, my_uid):
+        lock_files = self.fs.glob(f'{self.root_folder}/.lock_*')
+        if len(lock_files) == 0:
+            return None
+        
+        oldest_date = None
+        oldest_file = None
+        for lock_file in lock_files:
+            try: 
+                date = self.fs.modified(lock_file)
+            except FileNotFoundError: 
+                continue
+            if oldest_date is None or date < oldest_date:
+                oldest_date = date
+                oldest_file = lock_file
+        if oldest_file is None:
+            return False
+        return oldest_file.endswith(my_uid)
+
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         if self.cache_loc is None:
             return
@@ -70,12 +151,12 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
         props_list = mix_dicts(props_list, constraints_kwargs)
         result = []
 
-        cache_path_props_and_cache = None  # type:Optional[Tuple[Props], Dict[Props, Dict[str, Any]]]
+        running_cache = None  # type:Optional[RunningCache]
 
-        paths_and_path_props  = self.find_paths_and_path_props(props_list)
-        log.info(f'Found {len(paths_and_path_props)} files to read in locpath {self.locpath} fulfilling props {json.dumps(props_list)}')
-        for (path, path_props) in paths_and_path_props:
-            path_props_hashable = frozendict(path_props.items())
+        paths_and_file_path_props  = self.find_paths_and_path_props(props_list)
+        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.locpath} fulfilling props {json.dumps(props_list)}')
+        for (path, file_path_props) in paths_and_file_path_props:
+            path_props_hashable = frozendict(file_path_props.items())
 
             try:
                 f_timestamp = self.fs.modified(path)
@@ -84,29 +165,29 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
                 
             # renew cache, on cache file change
             if self.cache_loc:
-                path_cache_path       = self.cache_loc.get_path(path_props)
+                path_cache_path       = self.cache_loc.get_path(file_path_props)
                 path_cache_path_props = self.cache_loc.get_path_properties(path_cache_path)
 
-                if cache_path_props_and_cache is not None and cache_path_props_and_cache[0] == path_cache_path_props:
+                if running_cache is not None and running_cache.key == path_cache_path_props:
                     pass  # cache file is always the correct one : do nothing, keep this cache file opened
                 else:
-                    if cache_path_props_and_cache is not None and cache_path_props_and_cache[0] != path_cache_path_props:
+                    if running_cache is not None and running_cache.key != path_cache_path_props:
                         # flush previous cache, if exists
-                        if cache_path_props_and_cache[0]:
-                            with self.cache_loc.open(cache_path_props_and_cache[0], 'wb') as f:
-                                pickle.dump(cache_path_props_and_cache[1], f, )
+                        if running_cache.key:
+                            with self.cache_loc.open(running_cache.key, 'wb') as f:
+                                pickle.dump(running_cache.cache_by_file_path_props, f, )
 
                     # now prepare new cache file
                     if self.cache_loc.exists(path_cache_path_props):
                         with self.cache_loc.open(path_cache_path_props, 'rb') as f:
-                            cache_path_props_and_cache = (path_cache_path_props, pickle.load(f))
+                            running_cache = (path_cache_path_props, pickle.load(f))
                     else:
-                        cache_path_props_and_cache = (path_cache_path_props, OrderedDict())
+                        running_cache = (path_cache_path_props, OrderedDict())
 
             # check whether cache entry is still valid
             if self.cache_loc:
-                if path_props_hashable in cache_path_props_and_cache[1]:
-                    path_cached_entry = cache_path_props_and_cache[1][path_props_hashable]
+                if path_props_hashable in running_cache.cache_by_file_path_props:
+                    path_cached_entry = running_cache.cache_by_file_path_props[path_props_hashable]
                     if path_cached_entry['timestamp'] == f_timestamp:
                         log.info(f'Path analysis cached: {path}')
                         result.extend(path_cached_entry['props_list'].copy())  # copy from cache
@@ -117,7 +198,7 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
             # cache is not valid: read path directly!
 
             # props from reader
-            props_list = self._read_path(path, path_props)    # type: PropsList
+            props_list = self._read_path(path, file_path_props)    # type: PropsList
 
             # augment read props with additional external data
             for props in props_list:
@@ -125,39 +206,38 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
                 if self.timestamp_col:
                     props[self.timestamp_col] = f_timestamp
                 # -> path_props
-                props.update(path_props)
+                props.update(file_path_props)
 
             # add to result
             result.extend(props_list)
             # add to cache
             if self.cache_loc:
-                cache_path_props_and_cache[1][path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : props_list.copy()}
+                running_cache.cache_by_file_path_props[path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : props_list.copy()}
 
         # flush last used cache
-        if cache_path_props_and_cache:
-            with self.cache_loc.open(cache_path_props_and_cache[0], 'wb') as f:
-                pickle.dump(cache_path_props_and_cache[1], f)
+        if running_cache:
+            with self.cache_loc.open(running_cache.key, 'wb') as f:
+                pickle.dump(running_cache.cache_by_file_path_props, f)
 
         return result
 
     def write_content(self, content : TContent, dry_run=False):
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
+        
         props_list = self.frontend.write_content(content)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_contents(self, contents : TContents, dry_run=False):
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
+
         props_list = self.frontend.write_contents(contents)
         self.write_props_list(props_list, dry_run=dry_run)
 
     def write_props_list(self, props_list : PropsList, dry_run=False):
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
-
-        if isinstance(props_list, Dict):
-            props_list = [props_list]
 
         recorded_row_id_by_path_props    = {}
         recorded_row_other_props_by_path_props = {}
@@ -206,7 +286,7 @@ class Filoc(Generic[TContent, TContents], FilocContract[TContent, TContents], Fi
 # ------------------
 # FilocCompositeBase
 # ------------------
-class FilocComposite(Generic[TContent, TContents], FilocContract[TContent, TContents], ABC):
+class FilocComposite(FilocContract[TContent, TContents], ABC):
 
     def __init__(
             self,

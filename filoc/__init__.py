@@ -11,6 +11,16 @@ __version__ = '0.0.6'
 from .contract import PresetFrontends, FilocContract, BackendContract, FrontendContract, PresetBackends
 
 
+_default_frontend        = 'json'  
+_default_backend         = 'json'
+_default_singleton       =  True
+_default_writable        =  False
+_default_cache_locpath   =  None
+_default_timestamp_col   =  None
+_default_join_keys       =  None
+_default_join_level_name =  'index'
+_default_join_separator  =  '.'
+
 def _get_frontend(frontend : Union[PresetFrontends, FrontendContract]):
     if frontend == 'json':
         from .frontend_json import JsonFrontend
@@ -40,30 +50,17 @@ def _get_backend(backend : Union[PresetBackends, BackendContract], is_singleton 
 
 
 def filoc(
-        locpath          : Union[str, Dict[str, str], Dict[str, FilocContract]] = None,
-        frontend         : Union[PresetFrontends, FrontendContract]             = 'pandas',
-        backend          : Union[PresetBackends, BackendContract]               = 'json',
-        singleton        : bool                                                 = True,
-        writable         : Optional[bool]                                       = False,
-        cache_locpath    : Optional[str]                                        = None,
-        timestamp_col    : Optional[str]                                        = None,
-        join_keys        : Union[Iterable[str], Dict[Dict, Iterable[str]]]      = None,
-        join_level_name  : Optional[str]                                        = 'index',
-        join_separator   : Optional[str]                                        = '.',
-        **locpath_kwargs : Union[str, Dict[str, str], Dict[str, FilocContract]]
+        locpath          : Union[str, Dict[str, str], Dict[str, FilocContract]],
+        frontend         : Union[PresetFrontends, FrontendContract]            = _default_frontend,
+        backend          : Union[PresetBackends, BackendContract]              = _default_backend,
+        singleton        : bool                                                = _default_singleton,
+        writable         : Optional[bool]                                      = _default_writable,
+        cache_locpath    : Optional[str]                                       = _default_cache_locpath,
+        timestamp_col    : Optional[str]                                       = _default_timestamp_col,
+        join_keys        : Union[Iterable[str], Dict[Dict, Iterable[str]]]     = _default_join_keys,
+        join_level_name  : Optional[str]                                       = _default_join_level_name,
+        join_separator   : Optional[str]                                       = _default_join_separator,
 ) -> FilocContract:
-    if locpath is None and len(locpath_kwargs) == 0:
-        raise ValueError(f'local_path or locpath_kwargs must be defined')
-
-    # merge locpath_kwargs and locpath
-    if len(locpath_kwargs) > 0:
-        if locpath is None:
-            locpath = locpath_kwargs
-        elif isinstance(locpath, dict):
-            locpath.update(locpath_kwargs)
-        else:
-            raise ValueError(f'If **locpath_kwargs is defined, then locpath must be either None or an instance of dict. locpath_kwargs={locpath_kwargs}')
-
     frontend_impl = _get_frontend(frontend)
     backend_impl  = _get_backend(backend, singleton)
 

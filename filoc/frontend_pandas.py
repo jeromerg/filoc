@@ -1,6 +1,6 @@
 import logging
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from .contract import PropsList, TContents, TContent, FrontendContract
 
@@ -15,7 +15,17 @@ class PandasFrontend(FrontendContract):
         return DataFrame(props_list)
 
     def write_content(self, content: TContent) -> PropsList:
-        return content.to_dict(orient='records')
+        if isinstance(content, dict):
+            return [content]
+        elif isinstance(content, Series):
+            return content.to_dict()
+        else:
+            raise ValueError(f'Expected dict or Series, got {type(content).__name__}') 
 
     def write_contents(self, contents: TContents) -> PropsList:
-        return contents.to_dict(orient='records')
+        if isinstance(contents, list):
+            return contents
+        elif isinstance(contents, DataFrame):
+            return contents.to_dict(orient='records')
+        else:
+            raise ValueError(f'Expected list or DataFrame, got {type(contents).__name__}') 
