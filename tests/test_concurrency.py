@@ -1,3 +1,5 @@
+import socket
+import threading
 from filoc.core import LockException
 import json
 from logging import exception
@@ -28,6 +30,36 @@ class TestFilocConcurrency(unittest.TestCase):
             res = self.loc.read_content(id=1)
             print(res)
 
+    def test_lock_info(self):
+        host   = socket.gethostname()
+        pid    = os.getpid()
+        thread = threading.get_ident()
+
+        self.assertIsNone(self.loc.lock_info())
+
+        with self.loc.lock():            
+            lock_info = self.loc.lock_info()
+            
+            self.assertEqual(lock_info['host'], host)
+            self.assertEqual(lock_info['pid'], pid)
+            self.assertEqual(lock_info['thread'], thread)
+            
+            self.loc.write_content({'id' : 1, 'val' : 1})
+            res = self.loc.read_content(id=1)
+            print(res)
+
+        self.assertIsNone(self.loc.lock_info())
+
+    def test_lock_force(self):
+        self.loc.lock().__enter__()            
+        self.loc.lock_force_release()
+        self.assertIsNone(self.loc.lock_info())
+
+    def test_lock_force(self):
+        with self.loc.lock():
+            self.loc.lock_force_release()
+            self.assertIsNone(self.loc.lock_info())
+
     def test_lock_reenter(self):
         with self.loc.lock():
             with self.loc.lock():
@@ -40,7 +72,7 @@ class TestFilocConcurrency(unittest.TestCase):
 
         try:
             with self.loc.lock():
-                self.fail("facking failed: this line should never be called")
+                self.fail("this line should never be called")
         except LockException:
             print("lock worked")
 

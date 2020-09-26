@@ -42,6 +42,12 @@ class FilocContract(Generic[TContent, TContents], ABC):
     def lock(self):
         raise NotImplementedError('Abstract')
 
+    def lock_info(self):
+        raise NotImplementedError('Abstract')
+
+    def lock_force_release(self):
+        raise NotImplementedError('Abstract')
+
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         raise NotImplementedError('Abstract')
 

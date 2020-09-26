@@ -1,4 +1,5 @@
 import json
+import copy
 import logging
 from collections import OrderedDict
 from typing import Dict, Any, List, Union
@@ -84,8 +85,8 @@ def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[s
             pi1[_missing_key] = cp1
         else:
             for k in all_keys:
-                v1 = pi1.get(k, cp1)
-                v2 = pi2.get(k, cp2)
+                v1 = pi1[k] if k in pi1 else copy.deepcopy(cp1)
+                v2 = pi2[k] if k in pi2 else copy.deepcopy(cp2)
                 _merge_pivots_recursive(v1, v2, remaining_key_names[1:])
                 pi1[k] = v1
 

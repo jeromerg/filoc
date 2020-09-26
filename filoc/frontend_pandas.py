@@ -9,7 +9,7 @@ log = logging.getLogger('filoc')
 
 class PandasFrontend(FrontendContract):
     def read_content(self, props_list: PropsList) -> TContent:
-        return DataFrame(props_list)
+        return Series(props_list[0], dtype=object)  # dtype object in order to preserve int type, if Series contains only int and float values (elsewhere float wins)
 
     def read_contents(self, props_list: PropsList) -> TContents:
         return DataFrame(props_list)
@@ -18,7 +18,7 @@ class PandasFrontend(FrontendContract):
         if isinstance(content, dict):
             return [content]
         elif isinstance(content, Series):
-            return content.to_dict()
+            return [content.to_dict()]
         else:
             raise ValueError(f'Expected dict or Series, got {type(content).__name__}') 
 

@@ -6,6 +6,7 @@ from collections import OrderedDict
 from io import UnsupportedOperation
 from typing import Dict, Any, List, Optional, Set
 from typing import Tuple
+import pandas as pd
 
 import fsspec
 import parse
@@ -30,7 +31,12 @@ def sort_natural(li: List[str]) -> List[str]:
     return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
 
 
-def mix_dicts(dict1, dict2):
+def mix_dicts_and_coerce(dict1, dict2):
+    if isinstance(dict1, pd.Series):
+        dict1 = dict1.to_dict()
+    if isinstance(dict2, pd.Series):
+        dict2 = dict2.to_dict()
+
     dict2 = None if len(dict2) == 0 else dict2
     if dict1 and dict2:
         return OrderedDict([dict1, dict2])
@@ -73,14 +79,14 @@ class FilocIO:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
     def get_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
-        path_props = mix_dicts(path_props, path_props_kwargs)
+        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
         undefined_keys = self.path_props - set(path_props)
         if len(undefined_keys) > 0:
             raise ValueError('Required props undefined: {}. Provided: {}'.format(undefined_keys, path_props))
         return self.locpath.format(**path_props)  # result should be normalized, because locpath is
 
     def get_glob_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
-        path_props = mix_dicts(path_props, path_props_kwargs)
+        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
         provided_keys = set(path_props)
         undefined_keys = self.path_props - provided_keys
         defined_keys = self.path_props - undefined_keys
@@ -97,17 +103,17 @@ class FilocIO:
         return glob_path  # result should be normalized, because locpath is
 
     def find_paths(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[str]:
-        path_props = mix_dicts(path_props, path_props_kwargs)
+        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
         paths = self.fs.glob(self.get_glob_path(path_props))
         return sort_natural(paths)
 
     def find_paths_and_path_props(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[Tuple[str, List[str]]]:
-        path_props = mix_dicts(path_props, path_props_kwargs)
+        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
         paths = self.find_paths(path_props)
         return [(p, self.get_path_properties(p)) for p in paths]
 
     def exists(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> bool:
-        path_props = mix_dicts(path_props, path_props_kwargs)
+        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
         return self.fs.exists(self.get_path(path_props))
 
     def open(self, path_props : Dict[str, Any], mode="rb", block_size=None, cache_options=None, **kwargs):

@@ -7,6 +7,7 @@ import threading
 import time
 import hashlib
 import pickle
+import random
 from abc import ABC
 from collections import OrderedDict
 from datetime import datetime
@@ -20,7 +21,7 @@ import fsspec
 
 from .contract import TContent, TContents, PropsConstraints, Props, PropsList, ContentPath, FilocContract, \
     FrontendContract, BackendContract
-from .filoc_io import FilocIO, mix_dicts
+from .filoc_io import FilocIO, mix_dicts_and_coerce
 from .utils import merge_tables
 
 log = logging.getLogger('filoc')
@@ -68,28 +69,23 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
         self.timestamp_col = timestamp_col
 
     @contextmanager
-    def lock(self, attempt_count: float = 10, attempt_secs: float = 1.0):
+    def lock(self, attempt_count: float = 60, attempt_secs: float = 1.0):
         # remark: fsspec backends do not all support the 'x' exclusive mode, so we cannot use exclusive write mode to 
         # synchronize the writing into a single lock file. So each call to `lock()` tries to write its own lock file
         # and check afterward, if he won the run, by checking the modified timestamp of all lock files. It assumes, that the
         # file system sets timestamps in the same order as it processes the files (TODO: Verify assumption on distributed file systems)
 
-        # build a lock id. Scope of lock is (process x thread x root_folder)
-        host      = socket.gethostname()
-        pid       = os.getpid()
-        thread_id = threading.get_ident()
-        lock_id   = f'{host}_{pid}_{thread_id}'
-        lock_file = f'{self.root_folder}/.lock_{lock_id}'
-
+        lock_id, lock_file = self._get_my_lock_id_and_lock_file()
         for attempt in range(attempt_count):
-            is_owner = self._is_lock_owner_or_none_if_no_lock(lock_id)
+            owning_lock_date_and_file = self._get_owning_lock_date_and_file()
 
-            if is_owner == True: 
-                yield lock_id
-                return
-            elif is_owner == False:
-                time.sleep(attempt_secs)
-                continue
+            if owning_lock_date_and_file:
+                if owning_lock_date_and_file[1].endswith(lock_id): 
+                    yield lock_id
+                    return
+                else:
+                    time.sleep(random.uniform(0.5 * attempt_secs, 1.5 * attempt_secs))
+                    continue
 
             # else we try to acquire the lock
             self.fs.makedirs(self.root_folder, exist_ok=True)
@@ -100,18 +96,46 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
                     'thread' : threading.get_ident(),
                 }, f)
 
-            if self._is_lock_owner_or_none_if_no_lock(lock_id) == True:
-                yield lock_id
-                return
-
-            # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
             try:
-                self.fs.delete(lock_file)
-            except Exception as e:
-                log.error(f"Lock file {lock_file} could not be deleted", e)        
+                owning_lock_date_and_file = self._get_owning_lock_date_and_file()
+                if owning_lock_date_and_file and owning_lock_date_and_file[1].endswith(lock_id):
+                    yield lock_id
+                    return
+            finally:
+                # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
+                try:
+                    self.fs.delete(lock_file)
+                except Exception as e:
+                    log.error(f"Lock file {lock_file} could not be deleted", e)        
         raise LockException(f"Failed to acquire the file lock after {attempt_count} attempts")
 
-    def _is_lock_owner_or_none_if_no_lock(self, my_uid):
+    def lock_info(self) -> Optional[str]:
+        owning_lock_date_and_file = self._get_owning_lock_date_and_file()
+        if owning_lock_date_and_file is None:
+            return None
+
+        try:
+            with self.fs.open(owning_lock_date_and_file[1], 'r') as f:
+                info = json.load(f)
+            info['date'] = owning_lock_date_and_file[0]
+            return info
+        except FileNotFoundError:
+            return None
+
+    def lock_force_release(self):
+        owning_lock_date_and_file = self._get_owning_lock_date_and_file()
+        if owning_lock_date_and_file is None:
+            log.info(f'No lock found')
+            return
+
+        lock_file = owning_lock_date_and_file[1]
+        try:
+            self.fs.delete(lock_file)
+            log.warning(f'Forced releasing of lock file "{lock_file}"')
+        except FileNotFoundError:
+            return
+
+    def _get_owning_lock_date_and_file(self) -> Optional[Tuple[datetime, str]]:
         lock_files = self.fs.glob(f'{self.root_folder}/.lock_*')
         if len(lock_files) == 0:
             return None
@@ -128,33 +152,42 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
                 oldest_file = lock_file
         if oldest_file is None:
             return False
-        return oldest_file.endswith(my_uid)
+        return oldest_date, oldest_file
+
+    def _get_my_lock_id_and_lock_file(self):
+        # build a lock id. Scope of lock is (process x thread x root_folder)
+        host      = socket.gethostname()
+        pid       = os.getpid()
+        thread_id = threading.get_ident()
+        lock_id   = f'{host}_{pid}_{thread_id}'
+        lock_file = f'{self.root_folder}/.lock_{lock_id}'
+        return lock_id, lock_file
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         if self.cache_loc is None:
             return
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.cache_loc.delete(constraints)
 
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.get_path(constraints)  # validates, that pat_props points to a single file
         props_list = self.read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list  = self.read_props_list(constraints)
         return self.frontend.read_contents(props_list)
 
     def read_props_list(self, props_list : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
-        props_list = mix_dicts(props_list, constraints_kwargs)
+        props_list = mix_dicts_and_coerce(props_list, constraints_kwargs)
         result = []
 
         running_cache = None  # type:Optional[RunningCache]
 
         paths_and_file_path_props  = self.find_paths_and_path_props(props_list)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.locpath} fulfilling props {json.dumps(props_list)}')
+        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.locpath} fulfilling props {props_list}')
         for (path, file_path_props) in paths_and_file_path_props:
             path_props_hashable = frozendict(file_path_props.items())
 
@@ -166,23 +199,23 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
             # renew cache, on cache file change
             if self.cache_loc:
                 path_cache_path       = self.cache_loc.get_path(file_path_props)
-                path_cache_path_props = self.cache_loc.get_path_properties(path_cache_path)
+                cache_file_path_props = self.cache_loc.get_path_properties(path_cache_path)
 
-                if running_cache is not None and running_cache.key == path_cache_path_props:
+                if running_cache is not None and running_cache.key == cache_file_path_props:
                     pass  # cache file is always the correct one : do nothing, keep this cache file opened
                 else:
-                    if running_cache is not None and running_cache.key != path_cache_path_props:
+                    if running_cache is not None and running_cache.key != cache_file_path_props:
                         # flush previous cache, if exists
                         if running_cache.key:
                             with self.cache_loc.open(running_cache.key, 'wb') as f:
                                 pickle.dump(running_cache.cache_by_file_path_props, f, )
 
                     # now prepare new cache file
-                    if self.cache_loc.exists(path_cache_path_props):
-                        with self.cache_loc.open(path_cache_path_props, 'rb') as f:
-                            running_cache = (path_cache_path_props, pickle.load(f))
+                    if self.cache_loc.exists(cache_file_path_props):
+                        with self.cache_loc.open(cache_file_path_props, 'rb') as f:
+                            running_cache = RunningCache(cache_file_path_props, pickle.load(f))
                     else:
-                        running_cache = (path_cache_path_props, OrderedDict())
+                        running_cache = RunningCache(cache_file_path_props, OrderedDict())
 
             # check whether cache entry is still valid
             if self.cache_loc:
@@ -313,22 +346,22 @@ class FilocComposite(FilocContract[TContent, TContents], ABC):
                 self.join_keys_by_filoc_name[filoc_name] = set(join_keys_by_filoc_name[filoc_name])  # ensures set
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         for filoc in self.filoc_by_name.values():
             filoc.invalidate_cache(constraints)
 
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self.read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self.read_props_list(constraints)
         return self.frontend.read_contents(props_list)
 
     def read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
-        constraints = mix_dicts(constraints, constraints_kwargs)
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         # collect
         props_list_by_filoc_name = {}
         for filoc_name, filoc in self.filoc_by_name.items():

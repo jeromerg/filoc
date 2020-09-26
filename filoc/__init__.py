@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Union, Dict, Optional, List, Any, Iterable
 
-from pandas import DataFrame
+from pandas import Series, DataFrame
 
 from .core import FilocComposite, Filoc
 from .filoc_io import FilocIO
@@ -11,7 +11,7 @@ __version__ = '0.0.6'
 from .contract import PresetFrontends, FilocContract, BackendContract, FrontendContract, PresetBackends
 
 
-_default_frontend        = 'json'  
+_default_frontend        = 'pandas'  
 _default_backend         = 'json'
 _default_singleton       =  True
 _default_writable        =  False
@@ -144,7 +144,7 @@ def filoc_pandas(
         join_level_name    : Optional[str]                                        = 'index',
         join_separator     : Optional[str]                                        = '.',
         **locpath_kwargs   : Union[str, Dict[str, str], Dict[str, FilocContract]]
-) -> FilocContract[DataFrame, DataFrame]:
+) -> FilocContract[Series, DataFrame]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     return filoc(
         locpath            = locpath            ,
