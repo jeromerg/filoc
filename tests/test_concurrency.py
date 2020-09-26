@@ -66,15 +66,35 @@ class TestFilocConcurrency(unittest.TestCase):
                 pass
 
     def test_lock_enter_from_other_thread(self):
-        thread = Thread(target=lambda:self.loc.lock().__enter__())
-        thread.start()
-        thread.join()
+
+        state = 0
+
+        def wait_state_and_increment(expected_state):
+            nonlocal state
+            while state != expected_state:
+                time.sleep(0.1)
+            state += 1
+
+        def async_lock():
+            with self.loc.lock():
+                wait_state_and_increment(1)
+                wait_state_and_increment(4)
+                    
+        thread = Thread(target=async_lock)
+
+        ### BEGIN ASYNC PLAY        
+        wait_state_and_increment(0)  # state 0 --> 1
+        thread.start()               # state 1 --> 2 (then lock is set)
+        wait_state_and_increment(2)  # state 2 --> 3
 
         try:
             with self.loc.lock():
                 self.fail("this line should never be called")
         except LockException:
             print("lock worked")
+        finally:
+            wait_state_and_increment(3)  # state 3 --> 4 (trigger lock release)
+            wait_state_and_increment(5)  # state 5 --> 6 (lock released)
 
 
 if __name__ == '__main__':
