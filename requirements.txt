@@ -11,5 +11,8 @@ pytest
 setuptools
 
 # for example notebooks
+sklearn
+keras
+matplotlib
 torch 
 torchvision
