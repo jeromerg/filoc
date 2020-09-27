@@ -9,3 +9,7 @@ pyyaml
 flake8
 pytest
 setuptools
+
+# for example notebooks
+# torch 
+# torchvision

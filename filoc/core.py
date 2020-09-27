@@ -105,8 +105,8 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
                 # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
                 try:
                     self.fs.delete(lock_file)
-                except Exception as e:
-                    log.error(f"Lock file {lock_file} could not be deleted", e)        
+                except FileNotFoundError as e:
+                    log.warning(f"Lock file {lock_file} has been concurrently deleted (by self.lock_force_release()?). No need to remove it")        
         raise LockException(f"Failed to acquire the file lock after {attempt_count} attempts")
 
     def lock_info(self) -> Optional[str]:
