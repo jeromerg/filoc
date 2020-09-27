@@ -13228,7 +13228,7 @@ Requirement already satisfied: orderedset in /home/jerom/.local/lib/python3.8/si
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark">`filoc(...)` is a factory function that returns a `FilocContract` object, which is a kind of bi-directional adapter between a DataFrame and files defined in a structured manner.</span></p>
+<p><span class="post-remark"><code>filoc(...)</code> is a factory function that returns a <code>FilocContract</code> object, which is a kind of bi-directional adapter between a DataFrame and files defined in a structured manner.</span></p>
 
 </div>
 </div>
@@ -13271,7 +13271,7 @@ Requirement already satisfied: orderedset in /home/jerom/.local/lib/python3.8/si
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark">The `filoc(...)` first argument describes the path where the files are stored. It contains format placeholders, which are part of the data that are read or written.
+<p><span class="post-remark">The <code>filoc(...)</code> first argument describes the path where the files are stored. It contains format placeholders, which are part of the data that are read or written.
 </span></p>
 
 </div>
@@ -13861,7 +13861,7 @@ Requirement already satisfied: orderedset in /home/jerom/.local/lib/python3.8/si
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark">`FilocContract.write_contents(...)` created all the 53 hyperparameters files at once! It replaced the `sim` variable defined in the filoc path `./temp/iris/sim={sim:d}/hyperparameters.json`  by the `sim` value defined in the `sim_hyperparameters` list, then created the files and filled them with the remaining variables of the object.
+<p><span class="post-remark"><code>FilocContract.write_contents(...)</code> created all the 53 hyperparameters files at once! It replaced the <code>sim</code> variable defined in the filoc path <code>./temp/iris/sim={sim:d}/hyperparameters.json</code>  by the <code>sim</code> value defined in the <code>sim_hyperparameters</code> list, then created the files and filled them with the remaining variables of the object.
 </span></p>
 <p>Let's check the created files with the terminal <code>ls</code> command:</p>
 
@@ -14050,7 +14050,7 @@ We need 4 states:</p>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark">We locked the access to all state files within a `state_loc.lock()` with-block. It ensures that no other process currently read from nor write to the state files.
+<p><span class="post-remark">We locked the access to all state files within a <code>state_loc.lock()</code> with-block. It ensures that no other process currently read from nor write to the state files.
 </span></p>
 <p>The locking implementation is relative simple and works only against other <code>state_loc.lock()</code> protected access by other threads/processes/machines.</p>
 
@@ -14118,7 +14118,7 @@ We need 4 states:</p>
 <li><code>read_content(...)</code> reads the simulation hyperparameters atthe beginning</li>
 <li><code>write_content(...)</code> writes the epoch result every 100 epoch</li>
 </ul>
-<p><span class="post-remark">By default, the `filoc(...)` factory returns a `FilocContract` with a so-called **pandas front-end**. With that front-end: `read_content(...)` returns a a pandas `Series`, `read_contents(...)` returns a a pandas `DataFrame`, `write_content(...)` accepts either a pandas `Series` or a `dict` and `write_contents(...)` accepts either a pandas `DataFrame` or a list of `dict`. But you can also configure to use the **json frontend**, which handle plain python objects</span></p>
+<p><span class="post-remark">By default, the <code>filoc(...)</code> factory returns a <code>FilocContract</code> with a so-called <strong>pandas front-end</strong>. With that front-end: <code>read_content(...)</code> returns a a pandas <code>Series</code>, <code>read_contents(...)</code> returns a a pandas <code>DataFrame</code>, <code>write_content(...)</code> accepts either a pandas <code>Series</code> or a <code>dict</code> and <code>write_contents(...)</code> accepts either a pandas <code>DataFrame</code> or a list of <code>dict</code>. But you can also configure to use the <strong>json frontend</strong>, which handle plain python objects</span></p>
 <p>Remark: If you don't want to reference <span class="filoc">filoc</span> in your machine learning script, just replace the <code>read_content(...)</code> and <code>write_content(...)</code> calls as follows:</p>
 <table>
 <thead><tr>
@@ -15197,7 +15197,7 @@ We first create a new <code>FilocContract</code> that joins all file contents to
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Work in progress: ToDos:</p>
+<p><strong>Work in progress: ToDos:</strong></p>
 <ul>
 <li>Readme Doc</li>
 <li>API Doc </li>
