@@ -16,3 +16,8 @@ keras
 matplotlib
 torch 
 torchvision
+
+# for doc
+sphinx
+sphinxcontrib-napoleon
+sphinx-rtd-theme
