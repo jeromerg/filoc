@@ -8,7 +8,7 @@ Save, read and analyze files in structured folders: Your files are the database.
 Machine Learning Swiss Knife
 ----------------------------
 
-See the concrete the ML trip [here](./example_ml.html)
+See the following [example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
 
 In machine learning, we use it to create simulation hyperparameters set, schedule simulations, record results, and analyze hundreds of machine learning experiences 
 without the need of any database nor external services.
