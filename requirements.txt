@@ -11,6 +11,5 @@ pytest
 setuptools
 
 # for example notebooks
-urllib2
 torch 
 torchvision
