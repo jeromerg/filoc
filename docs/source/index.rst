@@ -9,7 +9,9 @@ Welcome to filoc's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
+   
+   filoc
+   modules
 
 
 Indices and tables
