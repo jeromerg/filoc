@@ -15,7 +15,12 @@ class JsonBackend(BackendContract):
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
         with fs.open(path) as f:
-            return filter_and_coerce_loaded_file_content(path, json.load(f), constraints, self.is_singleton)
+            try:
+                content = json.load(f)
+            except Exception as e:
+                raise ValueError(f'Could not json.load file "{path}"') from e
+
+            return filter_and_coerce_loaded_file_content(path, content, constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         fs.makedirs(os.path.dirname(path), exist_ok=True)
