@@ -1,7 +1,9 @@
+<link rel="stylesheet" type="text/css" media="all" href="custom.css" />
+
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
-FiLoc File Locator
-==================
+<span class="filoc">filoc</span>
+================================
 
 Save, read and analyze files in structured folders: Your files are the database. 
 
