@@ -1,4 +1,23 @@
-<link rel="stylesheet" type="text/css" media="all" href="https://raw.githubusercontent.com/jeromerg/filoc/master/" />
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+
+.filoc { font-size:160%; font-family: 'Dancing Script', cursive; }
+
+.post-remark {
+    background-color: lemonChiffon; 
+    padding:0.5em;
+    line-height:2em;
+}
+
+.post-remark:before {
+    content: "⮱";
+    font-size: 2.2em;
+    position: relative;
+    bottom: -0.1em;
+}
+
+table {margin-left: 4em !important;}
+</style>
 
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
