@@ -1,11 +1,11 @@
-<link rel="stylesheet" type="text/css" media="all" href="custom.css" />
+<link rel="stylesheet" type="text/css" media="all" href="https://raw.githubusercontent.com/jeromerg/filoc/master/" />
 
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
 <span class="filoc">filoc</span>
 ================================
 
-Save, read and analyze files in structured folders: Your files are the database. 
+<span class="filoc">filoc</span> Save, read and analyze files in structured folders: Your files are the database. 
 
 Machine Learning Swiss Knife
 ----------------------------
