@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="16.910992mm"
+   height="10.783299mm"
+   viewBox="0 0 16.910992 10.783299"
+   version="1.1"
+   id="svg32"
+   inkscape:version="1.0.1 (3bc2e813f5, 2020-09-07)"
+   sodipodi:docname="filoc.svg">
+  <defs
+     id="defs26">
+    <style
+       type="text/css"
+       id="style10">
+     @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700=swap');
+   </style>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="22.4"
+     inkscape:cx="32.757891"
+     inkscape:cy="24.57772"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false"
+     inkscape:window-width="3840"
+     inkscape:window-height="2097"
+     inkscape:window-x="-3848"
+     inkscape:window-y="-1099"
+     inkscape:window-maximized="1"
+     fit-margin-top="0.1"
+     fit-margin-left="0.1"
+     fit-margin-right="0.1"
+     fit-margin-bottom="0.1" />
+  <metadata
+     id="metadata29">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-0.55039726,0.07797554)">
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:10.5833px;line-height:1.25;font-family:'Dancing Script';-inkscape-font-specification:'Dancing Script';fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.3700616"
+       y="7.6420002"
+       id="text12"><tspan
+         sodipodi:role="line"
+         id="tspan10"
+         x="1.3700616"
+         y="7.6420002"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Dancing Script';-inkscape-font-specification:'Dancing Script';stroke-width:0.264583">filoc</tspan></text>
+  </g>
+</svg>
