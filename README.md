@@ -1,9 +1,9 @@
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
-![filoc](filoc.svg)
+<img src="./filoc.svg" alt="filoc" width="150"/>
 ================================
 
-<span class="filoc">filoc</span> Save, read and analyze files in structured folders: Your files are the database. 
+<img src="./filoc.svg" alt="filoc" width="45" style="vertical-align:bottom;"/> Save, read and analyze files in structured folders: Your files are the database. 
 
 Machine Learning Swiss Knife
 ----------------------------
