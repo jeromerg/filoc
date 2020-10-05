@@ -9,7 +9,7 @@ read multiple files into a single dataframe, or save a single dataframe to multi
 Machine Learning
 ----------------
 
-You can use filoc to simplify the handling of "data" in general in machine learning: See the [ML Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
+In machine learning, you can use filoc to simplify the handling of data: See the [ML Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
 
 
 Install
