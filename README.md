@@ -1,7 +1,7 @@
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
-<img src="./filoc.svg" alt="filoc" width="150"/> Library
-========================================================
+<img src="./filoc.svg" alt="filoc" width="150"/>
+
 
 Filoc maps files saved in a structured folder structure to pandas DataFrames. The mapping is bidirectional, so that you can use filoc to 
 read multiple files into a single dataframe, or save a single dataframe to multiple files.
