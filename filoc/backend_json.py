@@ -9,6 +9,9 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 
 class JsonBackend(BackendContract):
+    """
+    Filoc backend used to read data from JSON files and write into them. This implementation is used when you call ``filoc("...", backend="json")``.  
+    """
     def __init__(self, is_singleton) -> None:
         super().__init__()
         self.is_singleton = is_singleton

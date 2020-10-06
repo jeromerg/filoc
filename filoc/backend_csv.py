@@ -7,8 +7,12 @@ from fsspec import AbstractFileSystem
 from filoc.contract import PropsList, BackendContract
 from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_content_to_write
 
+# TODO: Unit tests of CSV Backend and all default backends
 
 class CsvBackend(BackendContract):
+    """
+    Filoc backend used to read data from CSV files and write into them. This implementation is used when you call ``filoc("...", backend="csv")``.
+    """
     def __init__(self, is_singleton) -> None:
         super().__init__()
         self.is_singleton = is_singleton
