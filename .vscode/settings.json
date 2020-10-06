@@ -13,5 +13,6 @@
         "-p",
         "test_*.py"
     ],
-    "pythonTestExplorer.testFramework": "unittest"
+    "pythonTestExplorer.testFramework": "unittest",
+    "restructuredtext.confPath": "${workspaceFolder}/docs/source"
 }
