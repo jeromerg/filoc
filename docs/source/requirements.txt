@@ -1,3 +1,15 @@
+frozendict
+fsspec
+orderedset
+pandas
+parse
+pyyaml
+
+# build and test
+flake8
+pytest
+setuptools
+
 # for doc
 sphinx
 sphinxcontrib-napoleon
