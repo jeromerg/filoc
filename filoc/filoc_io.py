@@ -49,7 +49,7 @@ def mix_dicts_and_coerce(dict1, dict2):
 
 
 # -------------------
-# Base Class RawFiloc
+# Class FilocIO
 # -------------------
 class FilocIO:
     def __init__(self, locpath: str, writable=False) -> None:

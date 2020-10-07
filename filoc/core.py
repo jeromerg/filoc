@@ -19,7 +19,7 @@ from uuid import uuid4
 from frozendict import frozendict
 import fsspec
 
-from .contract import TContent, TContents, PropsConstraints, Props, PropsList, ContentPath, FilocContract, \
+from .contract import TContent, TContents, PropsConstraints, Props, PropsList, FilocContract, \
     FrontendContract, BackendContract
 from .filoc_io import FilocIO, mix_dicts_and_coerce
 from .utils import merge_tables
@@ -38,9 +38,12 @@ class RunningCache(NamedTuple):
 
 
 # ---------
-# FilocBase
+# Filoc
 # ---------
 class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
+
+    # TODO: Do not inherit from FilocIO, instead introduce composition + getter properties for locpath a.o.. Motivation is to simplify Filoc public contract (a.o. displayed in jupyter on autocomplete)
+
     # noinspection PyDefaultArgument
     def __init__(
             self,
@@ -309,7 +312,7 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
                 other_props[k] = v
         return path_props, other_props, timestamp
 
-    def _read_path(self, path : ContentPath, constraints : PropsConstraints):
+    def _read_path(self, path : str, constraints : PropsConstraints):
         log.info(f'Reading content for {path}')
         content = self.backend.read(self.fs, path, constraints)
         log.info(f'Read content for {path}')

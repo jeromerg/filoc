@@ -10,10 +10,11 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 class YamlBackend(BackendContract):
     """
-    Filoc backend used to read data from YAML files and write into them. This implementation is used when you call ``filoc("...", backend="yaml")``.
-    Only files containing a list or a dictionary as root object are supported, depending on the ``is_singleton`` flag. We recommend to write you own 
-    backend, if you want to read pickle files, that have not be created by filoc itself. With that way, you can better handle the domain information of the files content 
-    to read them properly.
+    Filoc backend used to read data from YAML files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'yaml'``. Example:
+    
+    .. code-block:: python
+
+        loc = filoc('/my/locpath/{id}/data.yaml', backend='yaml')
     """
     def __init__(self, is_singleton) -> None:
         super().__init__()

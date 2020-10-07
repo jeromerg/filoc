@@ -7,13 +7,21 @@ from typing import TypeVar, Literal, Dict, Any, List, Generic, Optional
 from fsspec import AbstractFileSystem
 
 TContent             = TypeVar('TContent')
+"""Generic type of objects returned by ``FilocContract.get_content(...)`` and expected by ``FilocContract.write_content(...)``. 
+For example, in the ``'json'`` frontend, TContent is equal to `Dict[str,Any]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.Series`` """
 TContents            = TypeVar('TContents')
+"""Generic type of objects returned by ``FilocContract.get_contents(...)`` and expected by ``FilocContract.write_contents(...)``. 
+For example, in the ``'json'`` frontend, TContents is equal to `List[Dict[str,Any]]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.DataFrame`` """
 PresetFrontends      = Literal['json', 'pandas']
+"""Shortcuts used to designate filoc preset frontends"""
 PresetBackends       = Literal['json', 'yaml', 'pickle']
-ContentPath          = str
+"""Shortcut used to designate filoc preset backends"""
 Props                = Dict[str, Any]
+"""filoc intermediate data representation of a single data 'row'"""
 PropsConstraints     = Dict[str, Any]
+"""key-values describing constraints to apply while filtering data. Currently only equality is supported."""
 PropsList            = List[Props]
+"""filoc intermediate data representation between the backend files and the frontend TContent and TContents objects"""
 
 # ----------------
 # Abstract classes
@@ -22,15 +30,15 @@ PropsList            = List[Props]
 # TODO: Unit tests with remote file system
 
 class BackendContract(ABC):
-    """Abstract class of the backend contract. Subclass this class and implement ``read(...)`` and  ``write(...)`` to create an custom backend."""
+    """The abstract class that filoc backends need to implement."""
 
     def read(self, fs : AbstractFileSystem, path : str, constraints : Dict[str, Any]) -> PropsList:
         """Reads the data contained at ``path`` on the file system ``fs``, applies additional filters defined in ``constraints`` and convert the data to the filoc intermediate representation.
 
         Args:
-            fs (AbstractFileSystem): File system implementation from the [fsspec](https://github.com/intake/filesystem_spec)
-            path (str): The path at which the data must be loaded from. It is a concrete form of the filoc ``locpath``. 
-            constraints (Dict[str, Any]): All contraints provided by the user to take into account.
+            fs: File system implementation (see the `fsspec <https://github.com/intake/filesystem_spec/>`_ library)
+            path: The path at which the data must be loaded from. It is a concrete form of the filoc ``locpath``. 
+            constraints: All contraints provided by the user to take into account.
 
         Returns:
             PropsList: filoc intermediate representation between frontend and backend data (list of dictionary).
@@ -41,16 +49,15 @@ class BackendContract(ABC):
         """Writes the data contained in ``props_list`` into ``path`` on the file system ``fs``.
 
         Args:
-            fs (AbstractFileSystem): File system implementation from the [fsspec](https://github.com/intake/filesystem_spec)
-            path (str): The path to which the data must be saved to. It is a concrete form of the filoc ``locpath``. 
-            props_list (PropsList): filoc intermediate representation between frontend and backend data (list of dictionary).
+            fs: File system implementation (see the `fsspec <https://github.com/intake/filesystem_spec/>`_ library)
+            path: The path to which the data must be saved to. It is a concrete form of the filoc ``locpath``. 
+            props_list: filoc intermediate representation between frontend and backend data (list of dictionary).
         """
         raise NotImplementedError("Abstract")
 
 
 class FrontendContract(Generic[TContent, TContents], ABC):
-    """Abstract class of the backend contract. You need to subclass this class and implement ``read_content(...)``, ``read_contents(...)``,  
-    ``write_content(...)`` and ``write_contents(...)`` to create a custom frontend.
+    """The abstract class that filoc frontends need to implement.
 
     Args:
         TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
@@ -58,11 +65,13 @@ class FrontendContract(Generic[TContent, TContents], ABC):
     """
 
     def read_content(self, props_list : PropsList) -> TContent:
-        """ Converts the intermediate ``props_list`` list into the frontend ``TContent`` type. As you implement this method, You may want to first validate that the ``props_list``
+        """ Converts the ``props_list`` intermediate representation into a frontend ``TContent`` object. 
+        
+        Implementation remark: As you implement this method, You may want to first validate that the ``props_list``
         contains a single item. But you may want also to support multiple items, for example if you need to aggregate multiple files at folder level. 
 
         Args:
-            props_list (PropsList): filoc intermediate representation between frontend and backend data (list of dictionary).
+            props_list: filoc intermediate representation between frontend and backend data (list of dictionary).
 
         Returns:
             TContent: The frontend content object (i.e. the default json frontend implementation returns a json object)
@@ -70,10 +79,10 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         raise NotImplementedError("Abstract")
 
     def read_contents(self, props_list : PropsList) -> TContents:
-        """ Converts the intermediate ``props_list`` list into the frontend ``TContents`` type. 
+        """ Converts the ``props_list`` intermediate representation into a frontend ``TContents`` object. 
 
         Args:
-            props_list (PropsList): filoc intermediate representation between frontend and backend data (list of dictionary).
+            props_list: filoc intermediate representation between frontend and backend data (list of dictionary).
 
         Returns:
             TContents: The frontend contents object (i.e. the default json frontend implementation returns a json list)
@@ -81,10 +90,10 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         raise NotImplementedError("Abstract")
 
     def write_content(self, content : TContent) -> PropsList:
-        """ Converts the frontend ``TContent`` object into the intermediate ``PropsList`` type.
+        """ Converts the frontend ``TContent`` object into the filoc intermediate representation.
 
         Args:
-            content (TContent): The frontend content object (i.e. the default json frontend implementation returns a json object)
+            content: The frontend content object (i.e. the default json frontend implementation returns a json object)
 
         Returns:
             PropsList: filoc intermediate representation between frontend and backend data (list of dictionary).
@@ -92,10 +101,10 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         raise NotImplementedError("Abstract")
 
     def write_contents(self, contents : TContents) -> PropsList:
-        """ Converts the frontend ``TContents`` object into the intermediate ``PropsList`` type.
+        """ Converts the frontend ``TContents`` object into the filoc intermediate representation.
 
         Args:
-            contents (TContents): The frontend contents object (i.e. the default json frontend implementation returns a json list)
+            contents: The frontend contents object (i.e. the default json frontend implementation returns a json list)
 
         Returns:
             PropsList: filoc intermediate representation between frontend and backend data (list of dictionary).
@@ -104,7 +113,25 @@ class FrontendContract(Generic[TContent, TContents], ABC):
 
 
 class FilocContract(Generic[TContent, TContents], ABC):
+    """ The contract that *filoc* objects returned by the filoc factory implement. This is the most important contract in the filoc library.
+
+    Args:
+        TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
+        TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
+    """
+
     def lock(self):
+        """Prevents other filoc instances to concurrently read or write any file in the filoc tree. Usage:
+
+        .. code-block:: python
+
+            with my_filoc.lock():
+                my_filoc.read_contents(df)
+                my_filoc.write_contents(df)
+
+        Raises:
+            NotImplementedError: [description]
+        """
         raise NotImplementedError('Abstract')
 
     def lock_info(self):

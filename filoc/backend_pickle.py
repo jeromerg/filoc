@@ -10,10 +10,14 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 class PickleBackend(BackendContract):
     """
-    Filoc backend used to read data from pickle files and write into them. This implementation is used when you call ``filoc("...", backend="pickle")``.
-    Only files containing a list or a dictionary as root object are supported, depending on the ``is_singleton`` flag. We recommend to write you own 
-    backend, if you want to read pickle files, that have not be created by filoc itself. With that way, you can better handle the domain information of the files content 
-    to read them properly.
+    Filoc backend used to read data from Pickle files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'pickle'``. Example:
+    
+    .. code-block:: python
+
+        loc = filoc('/my/locpath/{id}/data.pickle', backend='pickle')
+
+    It is recommended to read files that you wrote with filoc itself. If you want to read pickle files written by a third library, it is recommended to implement your own backend, 
+    so that you can better handle the edge cases and print out better error messages.
     """
     def __init__(self, is_singleton) -> None:
         super().__init__()

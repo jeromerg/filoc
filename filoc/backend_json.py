@@ -10,7 +10,11 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 class JsonBackend(BackendContract):
     """
-    Filoc backend used to read data from JSON files and write into them. This implementation is used when you call ``filoc("...", backend="json")``.  
+    Filoc backend used to read data from CSV files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'json'``. Example:
+    
+    .. code-block:: python
+
+        loc = filoc('/my/locpath/{id}/data.json', backend='json')
     """
     def __init__(self, is_singleton) -> None:
         super().__init__()
