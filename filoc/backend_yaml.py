@@ -9,6 +9,13 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 
 class YamlBackend(BackendContract):
+    """
+    Filoc backend used to read data from YAML files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'yaml'``. Example:
+    
+    .. code-block:: python
+
+        loc = filoc('/my/locpath/{id}/data.yaml', backend='yaml')
+    """
     def __init__(self, is_singleton) -> None:
         super().__init__()
         self.is_singleton = is_singleton

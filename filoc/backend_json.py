@@ -9,13 +9,25 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 
 class JsonBackend(BackendContract):
+    """
+    Filoc backend used to read data from CSV files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'json'``. Example:
+    
+    .. code-block:: python
+
+        loc = filoc('/my/locpath/{id}/data.json', backend='json')
+    """
     def __init__(self, is_singleton) -> None:
         super().__init__()
         self.is_singleton = is_singleton
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
         with fs.open(path) as f:
-            return filter_and_coerce_loaded_file_content(path, json.load(f), constraints, self.is_singleton)
+            try:
+                content = json.load(f)
+            except Exception as e:
+                raise ValueError(f'Could not json.load file "{path}"') from e
+
+            return filter_and_coerce_loaded_file_content(path, content, constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         fs.makedirs(os.path.dirname(path), exist_ok=True)

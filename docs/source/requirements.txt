@@ -10,9 +10,7 @@ flake8
 pytest
 setuptools
 
-# for example notebooks
-sklearn
-keras
-matplotlib
-torch 
-torchvision
+# for doc
+sphinx
+sphinxcontrib-napoleon
+sphinx-rtd-theme
