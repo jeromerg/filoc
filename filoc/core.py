@@ -324,6 +324,8 @@ class Filoc(FilocContract[TContent, TContents], FilocIO, ABC):
 # ------------------
 class FilocComposite(FilocContract[TContent, TContents], ABC):
 
+    # TODO: Implement in FilocComposite missing methods (lock() and co.)
+
     def __init__(
             self,
             filoc_by_name           : Dict[str, Filoc],
