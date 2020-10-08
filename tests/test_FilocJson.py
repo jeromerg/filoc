@@ -100,7 +100,7 @@ class TestFilocJson(unittest.TestCase):
 
     def test_write_contents(self):
         wloc = filoc_json(self.path_fmt, writable=True)
-        wloc.write_props_list([
+        wloc._write_props_list([
             {"simid": 1, "epid": 10, 'a': 100},
             {"simid": 1, "epid": 20, 'a': 200},
             {"simid": 2, "epid": 10, 'a': 300},

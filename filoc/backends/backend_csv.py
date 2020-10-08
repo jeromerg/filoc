@@ -11,7 +11,7 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 class CsvBackend(BackendContract):
     """
-    Filoc backend used to read data from CSV files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'csv'``. Example:
+    filoc backend used to read data from CSV files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'csv'``. Example:
     
     .. code-block:: python
 

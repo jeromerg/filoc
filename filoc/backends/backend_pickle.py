@@ -10,7 +10,7 @@ from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_conte
 
 class PickleBackend(BackendContract):
     """
-    Filoc backend used to read data from Pickle files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'pickle'``. Example:
+    filoc backend used to read data from Pickle files and write into them. This implementation is used when you call the filoc factory with the ``backend`` argument set to ``'pickle'``. Example:
     
     .. code-block:: python
 
