@@ -1,11 +1,14 @@
-import csv
 import os
+from collections import OrderedDict
+from csv import DictWriter, DictReader
 from typing import Dict, Any
 
 from fsspec import AbstractFileSystem
+from orderedset import OrderedSet
 
 from filoc.contract import PropsList, BackendContract
-from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_content_to_write
+from filoc.utils import filter_and_coerce_loaded_file_content
+
 
 # TODO: Unit tests of CSV Backend and all default backends
 
@@ -17,15 +20,28 @@ class CsvBackend(BackendContract):
 
         loc = filoc('/my/locpath/{id}/data.csv', backend='csv')
     """
+
     def __init__(self, is_singleton) -> None:
+        """(see BackendContract contract)"""
         super().__init__()
         self.is_singleton = is_singleton
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
+        """(see BackendContract contract)"""
         with fs.open(path) as f:
-            return filter_and_coerce_loaded_file_content(path, csv.DictReader(f), constraints, self.is_singleton)
+            reader = DictReader(f)
+            props_list = [OrderedDict(row) for row in reader]
+            return filter_and_coerce_loaded_file_content(path, props_list, constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
+        """(see BackendContract contract)"""
         fs.makedirs(os.path.dirname(path), exist_ok=True)
+
+        fieldnames = OrderedSet()
+        for props in props_list:
+            fieldnames |= props.keys()
+
         with fs.open(path, 'w') as f:
-            return csv.DictWriter(coerce_file_content_to_write(path, props_list, self.is_singleton), f)
+            writer = DictWriter(f, fieldnames)
+            writer.writeheader()
+            writer.writerows(props_list)
