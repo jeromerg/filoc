@@ -1,8 +1,8 @@
+""" Filoc default CSV frontend implementation """
 import logging
 from filoc.contract import SingletonExpectedError, TContents, PropsList, TContent, FrontendContract
 
 log = logging.getLogger('filoc')
-
 
 class JsonFrontend(FrontendContract):
     def read_content(self, props_list: PropsList) -> TContent:

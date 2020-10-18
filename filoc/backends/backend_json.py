@@ -1,3 +1,4 @@
+""" Filoc default JSON backend implementation """
 import json
 import os
 from typing import Dict, Any

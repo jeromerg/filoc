@@ -76,7 +76,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         self.timestamp_col = timestamp_col
 
     @contextmanager
-    def lock(self, attempt_count: float = 60, attempt_secs: float = 1.0):
+    def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
         # remark: fsspec backends do not all support the 'x' exclusive mode, so we cannot use exclusive write mode to 
         # synchronize the writing into a single lock file. So each call to `lock()` tries to write its own lock file
         # and check afterward, if he won the run, by checking the modified timestamp of all lock files. It assumes, that the
@@ -158,7 +158,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 oldest_date = date
                 oldest_file = lock_file
         if oldest_file is None:
-            return False
+            return None
         return oldest_date, oldest_file
 
     def _get_my_lock_id_and_lock_file(self):
@@ -187,14 +187,14 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         props_list  = self._read_props_list(constraints)
         return self.frontend.read_contents(props_list)
 
-    def _read_props_list(self, props_list : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
-        props_list = mix_dicts_and_coerce(props_list, constraints_kwargs)
+    def _read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> PropsList:
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         result = []
 
         running_cache = None  # type:Optional[RunningCache]
 
-        paths_and_file_path_props  = self.filoc_io.find_paths_and_path_props(props_list)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling props {props_list}')
+        paths_and_file_path_props  = self.filoc_io.find_paths_and_path_props(constraints)
+        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling constraints {constraints}')
         for (path, file_path_props) in paths_and_file_path_props:
             path_props_hashable = frozendict(file_path_props.items())
 

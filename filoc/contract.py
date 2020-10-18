@@ -2,7 +2,7 @@
 # Types aliases
 # -------------
 from abc import ABC
-from typing import TypeVar, Literal, Dict, Any, List, Generic, Optional, Union
+from typing import TypeVar, Literal, Dict, Any, List, Generic, Optional
 
 from fsspec import AbstractFileSystem
 
