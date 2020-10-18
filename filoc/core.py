@@ -198,13 +198,9 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
 
         running_cache = None  # type:Optional[RunningCache]
 
-<<<<<<< HEAD
-        paths_and_file_path_props  = self.filoc_io.list_paths_and_props(props_list)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling props {props_list}')
-=======
-        paths_and_file_path_props  = self.filoc_io.find_paths_and_path_props(constraints)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling constraints {constraints}')
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+        paths_and_file_path_props  = self.filoc_io.list_paths_and_props(constraints)
+        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling props {constraints}')
+
         for (path, file_path_props) in paths_and_file_path_props:
             path_props_hashable = frozendict(file_path_props.items())
 

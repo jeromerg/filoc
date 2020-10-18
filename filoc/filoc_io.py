@@ -104,28 +104,18 @@ class FilocIO:
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
-<<<<<<< HEAD
-    def render_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
-        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
-        undefined_keys = self.path_props - set(path_props)
-=======
-    def get_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+    def render_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         undefined_keys = self.path_props - set(constraints)
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+
         if len(undefined_keys) > 0:
             raise ValueError('Required props undefined: {}. Provided: {}'.format(undefined_keys, constraints))
         return self.locpath.format(**constraints)  # result should be normalized, because locpath is
 
-<<<<<<< HEAD
-    def render_glob_path(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> str:
-        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
-        provided_keys = set(path_props)
-=======
-    def get_glob_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+    def render_glob_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         provided_keys = set(constraints)
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+
         undefined_keys = self.path_props - provided_keys
         defined_keys = self.path_props - undefined_keys
 
@@ -140,46 +130,27 @@ class FilocIO:
         glob_path = glob_path.format(**path_values)
         return glob_path  # result should be normalized, because locpath is
 
-<<<<<<< HEAD
-    def list_paths(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[str]:
-        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
-        paths = self.fs.glob(self.render_glob_path(path_props))
+    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[str]:
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
+        paths = self.fs.glob(self.render_glob_path(constraints))
         return sort_natural(paths)
 
-    def list_paths_and_props(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> List[Tuple[str, List[str]]]:
-        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
-        paths = self.list_paths(path_props)
+    def list_paths_and_props(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[Tuple[str, Dict[str, Any]]]:
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
+        paths = self.list_paths(constraints)
         return [(p, self.parse_path_properties(p)) for p in paths]
-
-    def exists(self, path_props : Optional[Dict[str, Any]] = None, **path_props_kwargs : Any) -> bool:
-        path_props = mix_dicts_and_coerce(path_props, path_props_kwargs)
-        return self.fs.exists(self.render_path(path_props))
-=======
-    def find_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[str]:
-        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        paths = self.fs.glob(self.get_glob_path(constraints))
-        return sort_natural(paths)
-
-    def find_paths_and_path_props(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[Tuple[str, Dict[str, Any]]]:
-        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        paths = self.find_paths(constraints)
-        return [(p, self.get_path_properties(p)) for p in paths]
 
     def exists(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> bool:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        return self.fs.exists(self.get_path(constraints))
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+        return self.fs.exists(self.render_path(constraints))
 
     def open(self, constraints : PropsConstraints, mode="rb", block_size=None, cache_options=None, **kwargs):
         is_writing = len(set(mode) & set("wa+")) > 0
         if is_writing and not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
-<<<<<<< HEAD
-        path = self.render_path(path_props)
-=======
-        path = self.get_path(constraints)
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+        path = self.render_path(constraints)
+
         dirname = os.path.dirname(path)
 
         if is_writing:
@@ -192,11 +163,8 @@ class FilocIO:
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable deleting')
 
-<<<<<<< HEAD
-        path_to_delete = self.list_paths(path_props)
-=======
-        path_to_delete = self.find_paths(constraints)
->>>>>>> 42005c87d324a6ab9238bcc8e90067459ba96059
+        path_to_delete = self.list_paths(constraints)
+
         dry_run_log_prefix = '(dry_run) ' if dry_run else ''
         log.info(f'{dry_run_log_prefix}Deleting {len(path_to_delete)} files with path_props "{constraints}"')
         for path in path_to_delete:
