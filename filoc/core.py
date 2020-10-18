@@ -58,12 +58,13 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             backend                : BackendContract     ,
             cache_locpath          : str                 ,
             timestamp_col          : str                 ,
+            fs                     : Optional[AbstractFileSystem],
     ):
         """
         if cache_locpath is relative, then it will be relative to result_locpath
         """
 
-        self.filoc_io = FilocIO(locpath, writable=writable)
+        self.filoc_io = FilocIO(locpath, writable=writable, fs=fs)
         self.frontend = frontend
         self.backend  = backend
 
@@ -74,6 +75,10 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 cache_locpath = self.filoc_io.root_folder + '/' + cache_locpath
             self.cache_loc = FilocIO(cache_locpath, writable=True)
         self.timestamp_col = timestamp_col
+
+    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
+        return self.filoc_io.list_paths(constraints)
 
     @contextmanager
     def lock(self, attempt_count: float = 60, attempt_secs: float = 1.0):
@@ -178,7 +183,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
 
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        self.filoc_io.get_path(constraints)  # validates, that pat_props points to a single file
+        self.filoc_io.render_path(constraints)  # validates, that pat_props points to a single file
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
@@ -193,20 +198,23 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
 
         running_cache = None  # type:Optional[RunningCache]
 
-        paths_and_file_path_props  = self.filoc_io.find_paths_and_path_props(props_list)
+        paths_and_file_path_props  = self.filoc_io.list_paths_and_props(props_list)
         log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling props {props_list}')
         for (path, file_path_props) in paths_and_file_path_props:
             path_props_hashable = frozendict(file_path_props.items())
 
             try:
                 f_timestamp = self.filoc_io.fs.modified(path)
+            except NotImplementedError:
+                # fsspect implementation, that do not implement modified, are assumed to be read-only (example: github)
+                f_timestamp = None
             except FileNotFoundError:
                 f_timestamp = None
                 
             # renew cache, on cache file change
             if self.cache_loc:
-                path_cache_path       = self.cache_loc.get_path(file_path_props)
-                cache_file_path_props = self.cache_loc.get_path_properties(path_cache_path)
+                path_cache_path       = self.cache_loc.render_path(file_path_props)
+                cache_file_path_props = self.cache_loc.parse_path_properties(path_cache_path)
 
                 if running_cache is not None and running_cache.key == cache_file_path_props:
                     pass  # cache file is always the correct one : do nothing, keep this cache file opened
@@ -296,7 +304,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         dry_run_log_prefix = '(dry_run) ' if dry_run else ''
         for path_props, other_props_list in recorded_row_other_props_by_path_props.items():
             self.invalidate_cache(path_props)
-            path = self.filoc_io.get_path(path_props)
+            path = self.filoc_io.render_path(path_props)
 
             log.info(f'{dry_run_log_prefix}Saving to {path}')
             if not dry_run:

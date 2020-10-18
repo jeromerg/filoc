@@ -133,6 +133,15 @@ class Filoc(Generic[TContent, TContents], ABC):
         TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
+    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+        """Delete the cache data for the provided constraints, to ensure that the data will be re-fetched by the filoc backend at the next ``get_content(...)`` or ``get_contents(...)`` calls.
+        
+        Remark: By default, the cache is configured to automatically invalidate cache entries loaded from paths whose timestamp changed. All default backends work on files and this
+        implementation works. But for custom backends, this invalidation mechanism may not work anymore (for example if the backend allows to work with folders instead of files). 
+        In that case, it may be required to invalidate the cache manually with the current method. """
+        raise NotImplementedError('Abstract')
+
+
     def lock(self):
         """Prevents other filoc instances to concurrently read or write any file in the filoc tree. Usage:
 

@@ -25,71 +25,71 @@ class TestFilocIO(unittest.TestCase):
 
     def test_get_path_properties(self):
         loc = FilocIO(self.path_fmt)
-        props = loc.get_path_properties(rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
+        props = loc.parse_path_properties(rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
         self.assertEqual(len(props), 2)
         self.assertEqual(props['simid'], 12)
         self.assertEqual(props['epid'], 102)
 
     def test_get_path(self):
         loc = FilocIO(self.path_fmt)
-        path1 = loc.get_path(simid=12, epid=102)
+        path1 = loc.render_path(simid=12, epid=102)
         self.assertEqual(path1, rf"{self.test_dir}/simid=12/epid=102/hyperparameters.json")
         # Todo: test other formattings: float, string
 
     def test_get_glob_path(self):
         loc = FilocIO(self.path_fmt)
-        path1 = loc.get_glob_path(epid=102)
+        path1 = loc.render_glob_path(epid=102)
         self.assertEqual(path1, rf"{self.test_dir}/simid=?*/epid=102/hyperparameters.json")
         # Todo: test other formattings: float, string
 
     def test_find_paths(self):
         loc = FilocIO(self.path_fmt)
-        touch_file(loc.get_path(simid=1, epid=10))
-        touch_file(loc.get_path(simid=1, epid=20))
-        touch_file(loc.get_path(simid=2, epid=10))
-        touch_file(loc.get_path(simid=2, epid=20))
+        touch_file(loc.render_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=20))
+        touch_file(loc.render_path(simid=2, epid=10))
+        touch_file(loc.render_path(simid=2, epid=20))
 
-        p = loc.find_paths(simid=1)
+        p = loc.list_paths(simid=1)
         self.assertListEqual(p, [
             rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json",
             rf"{self.test_dir}/simid=1/epid=20/hyperparameters.json"
         ])
 
-        p = loc.find_paths(epid=10)
+        p = loc.list_paths(epid=10)
         self.assertListEqual(p, [
             rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json",
             rf"{self.test_dir}/simid=2/epid=10/hyperparameters.json"
         ])
 
-        p = loc.find_paths(epid=12)
+        p = loc.list_paths(epid=12)
         self.assertListEqual(p, [])
 
     def test_find_paths_and_path_props(self):
         loc = FilocIO(self.path_fmt)
-        touch_file(loc.get_path(simid=1, epid=10))
-        touch_file(loc.get_path(simid=1, epid=20))
-        touch_file(loc.get_path(simid=2, epid=10))
-        touch_file(loc.get_path(simid=2, epid=20))
+        touch_file(loc.render_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=20))
+        touch_file(loc.render_path(simid=2, epid=10))
+        touch_file(loc.render_path(simid=2, epid=20))
 
-        p = loc.find_paths_and_path_props(simid=1)
+        p = loc.list_paths_and_props(simid=1)
         self.assertListEqual(p, [
             (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
             (rf"{self.test_dir}/simid=1/epid=20/hyperparameters.json", {'simid': 1, 'epid': 20}),
         ])
 
-        p = loc.find_paths_and_path_props(epid=10)
+        p = loc.list_paths_and_props(epid=10)
         self.assertListEqual(p, [
             (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
             (rf"{self.test_dir}/simid=2/epid=10/hyperparameters.json", {'simid': 2, 'epid': 10}),
         ])
 
-        p = loc.find_paths_and_path_props(epid=12)
+        p = loc.list_paths_and_props(epid=12)
         self.assertListEqual(p, [])
 
     def test_exists(self):
         loc = FilocIO(self.path_fmt)
         self.assertEqual(loc.exists(simid=1, epid=10), False)
-        touch_file(loc.get_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=10))
         self.assertEqual(loc.exists(simid=1, epid=10), True)
 
     def test_open_write_readonly(self):
@@ -108,13 +108,13 @@ class TestFilocIO(unittest.TestCase):
 
     def test_delete_readonly(self):
         loc = FilocIO(self.path_fmt)
-        touch_file(loc.get_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=10))
         with self.assertRaises(UnsupportedOperation):
             loc.delete(dict(simid=1, epid=10))
 
     def test_delete(self):
         loc = FilocIO(self.path_fmt, writable=True)
-        touch_file(loc.get_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=10))
         self.assertEqual(loc.exists(simid=1, epid=10), True)
         loc.delete(dict(simid=1, epid=10))
         self.assertEqual(loc.exists(simid=1, epid=10), False)
