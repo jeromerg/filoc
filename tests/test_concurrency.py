@@ -1,20 +1,18 @@
-import socket
-import threading
-from filoc.core import LockException
-import json
-from logging import exception
+""" Test """
 import os
 import shutil
+import socket
 import tempfile
-from threading import Thread
+import threading
 import time
 import unittest
-from pathlib import Path
+from threading import Thread
 
-from filoc import filoc, filoc_json, FilocIO
+from filoc import filoc
+from filoc.core import LockException
 
 
-# noinspection DuplicatedCode
+# noinspection DuplicatedCode,PyMissingOrEmptyDocstring
 class TestFilocConcurrency(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
@@ -55,7 +53,7 @@ class TestFilocConcurrency(unittest.TestCase):
         self.loc.lock_force_release()
         self.assertIsNone(self.loc.lock_info())
 
-    def test_lock_force(self):
+    def test_lock_force2(self):
         with self.loc.lock():
             self.loc.lock_force_release()
             self.assertIsNone(self.loc.lock_info())
@@ -82,13 +80,13 @@ class TestFilocConcurrency(unittest.TestCase):
                     
         thread = Thread(target=async_lock)
 
-        ### BEGIN ASYNC PLAY        
+        # BEGIN ASYNC PLAY
         wait_state_and_increment(0)  # state 0 --> 1
         thread.start()               # state 1 --> 2 (then lock is set)
         wait_state_and_increment(2)  # state 2 --> 3
 
         try:
-            with self.loc.lock():
+            with self.loc.lock(attempt_count=3, attempt_secs=0.2):
                 self.fail("this line should never be called")
         except LockException:
             print("lock worked")

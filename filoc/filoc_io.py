@@ -14,7 +14,7 @@ import parse
 from fsspec import AbstractFileSystem
 from fsspec.core import OpenFile
 
-from filoc.contract import PropsConstraints
+from filoc.contract import Constraints, Constraint
 
 log = logging.getLogger('rawfiloc')
 
@@ -148,7 +148,7 @@ class FilocIO:
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
-    def render_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+    def render_path(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> str:
         """
         Render the path defined by the provided placeholder values (``constraints``).
         Args:
@@ -167,7 +167,7 @@ class FilocIO:
             raise ValueError('Required props undefined: {}. Provided: {}'.format(undefined_keys, constraints))
         return self.locpath.format(**constraints)  # result should be normalized, because locpath is
 
-    def render_glob_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+    def render_glob_path(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> str:
         """
         Render a glob path defined by the provided placeholder values (``constraints``). The missing missing placeholders
         are replaced by ``*`` in the glob path.
@@ -195,7 +195,7 @@ class FilocIO:
         glob_path = glob_path.format(**path_values)
         return glob_path  # result should be normalized, because locpath is
 
-    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[str]:
+    def list_paths(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[str]:
         """
         Gets the list of all existing and valid paths fulfilling the provided constraints
         Args:
@@ -209,7 +209,7 @@ class FilocIO:
         paths = self.fs.glob(self.render_glob_path(constraints))
         return sort_natural(paths)
 
-    def list_paths_and_props(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[Tuple[str, Dict[str, Any]]]:
+    def list_paths_and_props(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[Tuple[str, Dict[str, Any]]]:
         """
         Gets the list of all existing and valid paths fulfilling the provided constraints, along with the list of associated placeholder values
         Args:
@@ -223,7 +223,7 @@ class FilocIO:
         paths = self.list_paths(constraints)
         return [(p, self.parse_path_properties(p)) for p in paths]
 
-    def exists(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> bool:
+    def exists(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> bool:
         """
         Checks if the path defined by the provided placeholder values (``constraints``) exists
         Args:
@@ -238,7 +238,7 @@ class FilocIO:
 
     def open(
             self,
-            constraints   : PropsConstraints,
+            constraints   : Constraints,
             mode          : str = "rb",
             block_size    : int = None,
             cache_options : Optional[Dict] = None,
@@ -271,7 +271,7 @@ class FilocIO:
         return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
     # noinspection PyDefaultArgument
-    def delete(self, constraints : Optional[PropsConstraints] = {}, dry_run=False):
+    def delete(self, constraints : Optional[Constraints] = {}, dry_run=False):
         """
         Delete the path defined by the provided placeholder values (``constraints``)
 

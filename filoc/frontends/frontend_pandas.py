@@ -25,10 +25,13 @@ class PandasFrontend(FrontendContract):
 
     def write_content(self, content: TContent) -> PropsList:
         """(see FrontendContract contract)"""
+        result = list()
         if isinstance(content, dict):
-            return list(content)
+            result.append(content)
+            return result
         elif isinstance(content, Series):
-            return list(content.to_dict())
+            result.append(content.to_dict())
+            return result
         else:
             raise FrontendConversionError(f'Expected dict or Series, got {type(content).__name__}') 
 

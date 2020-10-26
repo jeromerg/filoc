@@ -16,8 +16,8 @@ from typing import Dict, Any, NamedTuple, Optional, Tuple, Set
 from frozendict import frozendict
 from fsspec.spec import AbstractFileSystem
 
-from filoc.contract import TContent, TContents, PropsConstraints, Props, PropsList, Filoc, \
-    FrontendContract, BackendContract, ReadOnlyProps
+from filoc.contract import TContent, TContents, Constraints, Props, PropsList, Filoc, \
+    FrontendContract, BackendContract, ReadOnlyProps, Constraint
 from .filoc_io import FilocIO, mix_dicts_and_coerce
 from .utils import merge_tables
 
@@ -74,7 +74,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             self.cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
         self.timestamp_col = timestamp_col
 
-    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+    def list_paths(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         return self.filoc_io.list_paths(constraints)
@@ -177,27 +177,27 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         lock_file = f'{self.filoc_io.root_folder}/.lock_{lock_id}'
         return lock_id, lock_file
 
-    def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+    def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """ See ``Filoc`` contract """
         if self.cache_loc is None:
             return
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.cache_loc.delete(constraints)
 
-    def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
+    def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.filoc_io.render_path(constraints)  # validates, that pat_props points to a single file
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
-    def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
+    def read_contents(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContents:
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list  = self._read_props_list(constraints)
         return self.frontend.read_contents(props_list)
 
-    def _read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> PropsList:
+    def _read_props_list(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> PropsList:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         result = []
 
@@ -332,7 +332,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 other_props[k] = v
         return path_props, other_props, timestamp
 
-    def _read_path(self, path : str, constraints : PropsConstraints):
+    def _read_path(self, path : str, constraints : Constraints):
         log.info(f'Reading content for {path}')
         content = self.backend.read(self.filoc_io.fs, path, constraints)
         log.info(f'Read content for {path}')
@@ -369,25 +369,25 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         for filoc_name, filoc in filoc_by_name.items():
             self.join_keys_by_filoc_name[filoc_name] = filoc.filoc_io.path_props
 
-    def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+    def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         for filoc in self.filoc_by_name.values():
             filoc.invalidate_cache(constraints)
 
-    def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
+    def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
-    def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
+    def read_contents(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContents:
         """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self._read_props_list(constraints)
         return self.frontend.read_contents(props_list)
 
-    def _read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
+    def _read_props_list(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> PropsList:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         # collect
         props_list_by_filoc_name = {}

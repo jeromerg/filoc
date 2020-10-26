@@ -25,13 +25,18 @@ PresetFrontends      = Literal['json', 'pandas']
 PresetBackends       = Literal['json', 'yaml', 'pickle']
 """Shortcut used to designate filoc preset backends"""
 
-PropsConstraints     = Mapping[str, Any]
+Constraint           = Any
 """key-values describing constraints to apply while filtering data. Currently only equality is supported."""
 
-ReadOnlyProps        = Mapping[str, Any]
+Constraints          = Mapping[str, Constraint]
+"""key-values describing constraints to apply while filtering data. Currently only equality is supported."""
+
+PropValue            = Any
+
+ReadOnlyProps        = Mapping[str, PropValue]
 """filoc intermediate data representation of a single data 'row'"""
 
-Props                = Dict[str, Any]
+Props                = Dict[str, PropValue]
 """filoc intermediate data representation of a single data 'row'"""
 
 PropsList            = List[Props]
@@ -148,11 +153,11 @@ class Filoc(Generic[TContent, TContents], ABC):
     TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
-    def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props) -> List[str]:
+    def list_paths(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Props) -> List[str]:
         """ Get the existing paths fulfilling the provided constraints. """
         raise NotImplementedError('Abstract')
 
-    def lock(self):
+    def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
         """Prevents other filoc instances to concurrently read or write any file in the filoc tree. Usage:
 
         .. code-block:: python
@@ -178,7 +183,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """Forces the removing of lock file even a concurrent process is still supposed to own it. Consider this method as your "last action before being fired"!"""
         raise NotImplementedError('Abstract')
 
-    def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+    def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """Delete the cache data for the provided constraints, to ensure that the data will be re-fetched by the filoc backend at the next ``get_content(...)`` or ``get_contents(...)`` calls.
         
         Remark: By default, the cache is configured to automatically invalidate cache entries loaded from paths whose timestamp changed. All default backends work on files and this
@@ -186,7 +191,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         In that case, it may be required to invalidate the cache manually with the current method. """
         raise NotImplementedError('Abstract')
 
-    def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
+    def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """Reads the data entries fulfilling the ``constraints`` and converts them to a TContent object. With the filoc default frontend implementations, the ``constraints`` must result in the
         selection of a single entry. If multiple rows are selected, the call raises a ``SingletonExpectedError``
 
@@ -202,7 +207,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
-    def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
+    def read_contents(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContents:
         """Reads the data entries fulfilling the ``constraints`` and converts them to a TContents object. 
 
         Args:
@@ -216,7 +221,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
-    def _read_props_list(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> PropsList:
+    def _read_props_list(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> PropsList:
         """Reads the data entries fulfilling the ``constraints`` and converts them to the filoc intermediate representation.
         This function is used internally to shared the intermediate representation in filoc composites.
 
