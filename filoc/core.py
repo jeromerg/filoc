@@ -1,26 +1,23 @@
+""" Filoc Core Implementation """
 import json
 import logging
 import os
-from contextlib import contextmanager
+import pickle
+import random
 import socket
 import threading
 import time
-import hashlib
-import pickle
-import random
 from abc import ABC
+from contextlib import contextmanager
 from datetime import datetime
 from io import UnsupportedOperation
-from typing import Dict, Any, NamedTuple, Optional, Tuple, Generic, Iterable, Set
-import base64
-from uuid import uuid4
+from typing import Dict, Any, NamedTuple, Optional, Tuple, Set
 
 from frozendict import frozendict
-import fsspec
 from fsspec.spec import AbstractFileSystem
 
 from filoc.contract import TContent, TContents, PropsConstraints, Props, PropsList, Filoc, \
-    FrontendContract, BackendContract
+    FrontendContract, BackendContract, ReadOnlyProps
 from .filoc_io import FilocIO, mix_dicts_and_coerce
 from .utils import merge_tables
 
@@ -28,25 +25,27 @@ log = logging.getLogger('filoc')
 
 
 class LockException(Exception):
+    """ Exception raised while trying to acquire a lock with ``Filoc.lock()`` after the count of defined attempts has been reached"""
     def __init__(self, *args):
         Exception.__init__(self, *args)
 
 
-class RunningCache(NamedTuple):
-    key : Props # key-values expected by cache_locpath
-    cache_by_file_path_props : Dict[Props, Dict[str, Any]] # key-values expected by (this) locpath props
+class _RunningCache(NamedTuple):
+    key : Props  # key-values expected by cache_locpath
+    cache_by_file_path_props : Dict[ReadOnlyProps, Dict[str, Any]]  # key-values expected by (this) locpath props
 
 
-# TODO: FilocSingle: Introduce new cache option "assume_immutable", to avoid even check for filestamp
+# TODO: FilocSingle: Introduce new cache option "assume_immutable", to avoid even check for file timestamp
 # TODO: FilocComposite: Unit tests (and fixes) of complex join cases, where constraints reduce to set of result of a single nested filoc
 # TODO: FilocSingle: Introduce explicit and configurable logging mechanism to enable logging of write accesses (especially useful with the dry_run flag)
 # TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
+
 
 # ---------
 # FilocSingle
 # ---------
 class FilocSingle(Filoc[TContent, TContents], ABC):
-
+    """ Filoc implementation for a single locpath """
     # TODO: Do not inherit from FilocIO, instead introduce composition + getter properties for locpath a.o.. Motivation is to simplify FilocSingle public contract (a.o. displayed in jupyter on autocomplete)
 
     # noinspection PyDefaultArgument
@@ -76,13 +75,14 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         self.timestamp_col = timestamp_col
 
     def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+        """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         return self.filoc_io.list_paths(constraints)
 
-
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
-        # remark: fsspec backends do not all support the 'x' exclusive mode, so we cannot use exclusive write mode to 
+        """ See ``Filoc`` contract """
+        # remark: fsspec backends do not all support the 'x' exclusive mode, so we cannot use exclusive write mode to
         # synchronize the writing into a single lock file. So each call to `lock()` tries to write its own lock file
         # and check afterward, if he won the run, by checking the modified timestamp of all lock files. It assumes, that the
         # file system sets timestamps in the same order as it processes the files (TODO: Verify assumption on distributed file systems)
@@ -117,11 +117,12 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
                 try:
                     self.filoc_io.fs.delete(lock_file)
-                except FileNotFoundError as e:
+                except FileNotFoundError:
                     log.warning(f"Lock file {lock_file} has been concurrently deleted (by self.lock_force_release()?). No need to remove it")        
         raise LockException(f"Failed to acquire the file lock after {attempt_count} attempts")
 
     def lock_info(self) -> Optional[Dict[str, Any]]:
+        """ See ``Filoc`` contract """
         owning_lock_date_and_file = self._get_owning_lock_date_and_file()
         if owning_lock_date_and_file is None:
             return None
@@ -135,6 +136,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             return None
 
     def lock_force_release(self):
+        """ See ``Filoc`` contract """
         owning_lock_date_and_file = self._get_owning_lock_date_and_file()
         if owning_lock_date_and_file is None:
             log.info(f'No lock found')
@@ -176,18 +178,21 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         return lock_id, lock_file
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+        """ See ``Filoc`` contract """
         if self.cache_loc is None:
             return
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.cache_loc.delete(constraints)
 
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
+        """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         self.filoc_io.render_path(constraints)  # validates, that pat_props points to a single file
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
+        """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list  = self._read_props_list(constraints)
         return self.frontend.read_contents(props_list)
@@ -196,7 +201,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         result = []
 
-        running_cache = None  # type:Optional[RunningCache]
+        running_cache = None  # type:Optional[_RunningCache]
 
         paths_and_file_path_props  = self.filoc_io.list_paths_and_props(constraints)
         log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.filoc_io.locpath} fulfilling props {constraints}')
@@ -207,7 +212,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             try:
                 f_timestamp = self.filoc_io.fs.modified(path)
             except NotImplementedError:
-                # fsspect implementation, that do not implement modified, are assumed to be read-only (example: github)
+                # fsspec implementation, that do not implement modified, are assumed to be read-only (example: github)
                 f_timestamp = None
             except FileNotFoundError:
                 f_timestamp = None
@@ -229,9 +234,9 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                     # now prepare new cache file
                     if self.cache_loc.exists(cache_file_path_props):
                         with self.cache_loc.open(cache_file_path_props, 'rb') as f:
-                            running_cache = RunningCache(cache_file_path_props, pickle.load(f))
+                            running_cache = _RunningCache(cache_file_path_props, pickle.load(f))
                     else:
-                        running_cache = RunningCache(cache_file_path_props, dict())
+                        running_cache = _RunningCache(cache_file_path_props, dict())
 
             # check whether cache entry is still valid
             if self.cache_loc:
@@ -271,6 +276,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         return result
 
     def write_content(self, content : TContent, dry_run=False):
+        """ See ``Filoc`` contract """
         if not self.filoc_io.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
         
@@ -278,6 +284,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         self._write_props_list(props_list, dry_run=dry_run)
 
     def write_contents(self, contents : TContents, dry_run=False):
+        """ See ``Filoc`` contract """
         if not self.filoc_io.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
@@ -312,12 +319,12 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 self.backend.write(self.filoc_io.fs, path, other_props_list)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
-    def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, datetime, Props]:
-        path_props = {}
-        timestamp  = None
-        other_props      = dict()
+    def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, Props, datetime]:
+        path_props  = {}
+        timestamp   = None
+        other_props = dict()
         for (k, v) in keyvalues.items():
-            if k in self.path_props:
+            if k in self.filoc_io.path_props:
                 path_props[k] = v
             elif k == self.timestamp_col:
                 timestamp = keyvalues[k]
@@ -336,44 +343,46 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
 # FilocCompositeBase
 # ------------------
 class FilocComposite(Filoc[TContent, TContents], ABC):
+    """ Filoc implementation for composite filocs """
 
-    # TODO: Implement in FilocComposite missing methods (lock() and co.)
+    # TODO: Implement remaining Filoc methods (lock() and co.)
 
     def __init__(
             self,
-            filoc_by_name           : Dict[str, Filoc],
+            filoc_by_name           : Dict[str, FilocSingle],
             frontend                : FrontendContract,
-            join_keys_by_filoc_name : Optional[Dict[str, Iterable[str]]],
             join_level_name         : str,
             join_separator          : str,
     ):
-
+        # Validate
         assert isinstance(filoc_by_name, dict)
+        for filoc_name, filoc in filoc_by_name.items():
+            if not isinstance(filoc, FilocSingle):
+                raise ValueError(f'filoc {filoc_name} is not a FilocSingle instance. FilocComposite only support FilocSingle sub-filocs')
 
         self.frontend        = frontend
         self.filoc_by_name   = filoc_by_name
         self.join_level_name = join_level_name
         self.join_separator  = join_separator
 
-        if join_keys_by_filoc_name is None:
-            self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
+        self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
         for filoc_name, filoc in filoc_by_name.items():
-            if filoc_name not in self.join_keys_by_filoc_name:
-                self.join_keys_by_filoc_name[filoc_name] = filoc.path_props
-            else:
-                self.join_keys_by_filoc_name[filoc_name] = set(join_keys_by_filoc_name[filoc_name])  # ensures set
+            self.join_keys_by_filoc_name[filoc_name] = filoc.filoc_io.path_props
 
     def invalidate_cache(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
+        """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         for filoc in self.filoc_by_name.values():
             filoc.invalidate_cache(constraints)
 
     def read_content(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContent:
+        """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : PropsConstraints) -> TContents:
+        """ see ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self._read_props_list(constraints)
         return self.frontend.read_contents(props_list)
@@ -383,6 +392,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         # collect
         props_list_by_filoc_name = {}
         for filoc_name, filoc in self.filoc_by_name.items():
+            # noinspection PyProtectedMember
             props_list_by_filoc_name[filoc_name] = filoc._read_props_list(constraints)
 
         # join
@@ -392,10 +402,12 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         return merge_tables(props_list_by_filoc_name, list(join_key_names), self.join_separator, self.join_level_name)
 
     def write_content(self, content : TContent, dry_run=False):
+        """ see ``Filoc`` contract """
         props_list = self.frontend.write_content(content)
         self._write_props_list(props_list, dry_run=dry_run)
 
     def write_contents(self, contents : TContents, dry_run=False):
+        """ see ``Filoc`` contract """
         props_list = self.frontend.write_contents(contents)
         self._write_props_list(props_list, dry_run=dry_run)
 
@@ -404,7 +416,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         props_list_by_filoc_name = {
             filoc_name : [ dict() for _ in range(len(props_list)) ]
             for filoc_name, filoc in self.filoc_by_name.items()
-            if filoc.writable
+            if filoc.filoc_io.writable
         }
         props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
 
@@ -437,4 +449,5 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         # delegate writing to
         for filoc_name, filoc_props_list in props_list_by_filoc_name.items():
             filoc = self.filoc_by_name[filoc_name]
+            # noinspection PyProtectedMember
             filoc._write_props_list(filoc_props_list, dry_run=dry_run)

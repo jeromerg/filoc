@@ -23,10 +23,12 @@ class YamlBackend(BackendContract):
         self.encoding     = encoding
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
+        """(see BackendContract contract)"""
         with fs.open(path, encoding=self.encoding) as f:
             return filter_and_coerce_loaded_file_content(path, yaml.load(f), constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
+        """(see BackendContract contract)"""
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         with fs.open(path, 'w', encoding=self.encoding) as f:
             return yaml.dump(coerce_file_content_to_write(path, props_list, self.is_singleton), f, indent=2)

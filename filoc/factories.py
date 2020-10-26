@@ -1,3 +1,6 @@
+"""
+This module contains the filoc factories ``filoc(...)``, ``filoc_json(...)``, ``filoc_pandas(...)``.
+"""
 from fsspec.spec import AbstractFileSystem
 
 from pandas.core.series import Series
@@ -9,13 +12,14 @@ from filoc.contract import PresetFrontends, Filoc, BackendContract, FrontendCont
 
 _default_frontend        = 'pandas'  
 _default_backend         = 'json'
-_default_singleton       =  True
-_default_encoding        =  None
-_default_writable        =  False
-_default_timestamp_col   =  None
-_default_join_keys       =  None
-_default_join_level_name =  'index'
-_default_join_separator  =  '.'
+_default_singleton       = True
+_default_encoding        = None
+_default_writable        = False
+_default_timestamp_col   = None
+_default_join_keys       = None
+_default_join_level_name = 'index'
+_default_join_separator  = '.'
+
 
 def _get_frontend(frontend : Union[PresetFrontends, FrontendContract]):
     if frontend == 'json':
@@ -37,7 +41,7 @@ def _get_backend(backend : Union[PresetBackends, BackendContract], is_singleton 
         return JsonBackend(is_singleton, encoding)
     elif backend == 'pickle':
         from filoc.backends import PickleBackend
-        return PickleBackend(is_singleton, encoding)
+        return PickleBackend(is_singleton)
     elif backend == 'yaml':
         from filoc.backends import YamlBackend
         return YamlBackend(is_singleton, encoding)
@@ -55,11 +59,31 @@ def filoc(
         cache_locpath    : Optional[str]                                   = None,
         cache_fs         : Optional[AbstractFileSystem]                    = None,
         timestamp_col    : Optional[str]                                   = _default_timestamp_col,
-        join_keys        : Union[Iterable[str], Dict[Dict, Iterable[str]]] = _default_join_keys,
+        join_keys        : Optional[Dict[Dict, Iterable[str]]]             = _default_join_keys,
         join_level_name  : Optional[str]                                   = _default_join_level_name,
         join_separator   : Optional[str]                                   = _default_join_separator,
         fs               : Optional[AbstractFileSystem]                    = None,
 ) -> Filoc:
+    """
+
+    Args:
+        locpath:
+        frontend:
+        backend:
+        singleton:
+        encoding:
+        writable:
+        cache_locpath:
+        cache_fs:
+        timestamp_col:
+        join_keys:
+        join_level_name:
+        join_separator:
+        fs:
+
+    Returns:
+
+    """
     frontend_impl = _get_frontend(frontend)
     backend_impl  = _get_backend(backend, singleton, encoding)
 
@@ -90,7 +114,6 @@ def filoc(
         return FilocComposite(
             filoc_by_name           = filoc_by_name,
             frontend                = frontend_impl,
-            join_keys_by_filoc_name = join_keys,
             join_level_name         = join_level_name,
             join_separator          = join_separator,
         )
@@ -101,6 +124,7 @@ def filoc(
             frontend      = frontend_impl,
             backend       = backend_impl,
             cache_locpath = cache_locpath,
+            cache_fs      = cache_fs,
             timestamp_col = timestamp_col,
             fs            = fs,
         )

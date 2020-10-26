@@ -1,7 +1,10 @@
+"""
+Internal utilities
+"""
 import json
 import copy
 import logging
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Mapping
 
 from orderedset import OrderedSet
 
@@ -12,6 +15,7 @@ log = logging.getLogger('filoc_utils')
 _missing_key = object()
 
 
+# noinspection PyMissingOrEmptyDocstring
 def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_singleton):
     # validate file_content and coerce to list
     if is_singleton:
@@ -38,7 +42,8 @@ def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_si
     return result
 
 
-def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bool) -> Union[dict, list]:
+# noinspection PyMissingOrEmptyDocstring
+def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bool) -> Union[Mapping[str, Any], list]:
     # validate file_content and coerce to list
     if is_singleton:
         if len(props_list) == 1:
@@ -57,7 +62,8 @@ def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bo
 # ---------------------
 # Pivot Helpers
 # ---------------------
-def merge_tables(table_by_name : Dict[str, List[Dict[str, Any]]], join_key_names : List[str], separator : str, join_level_name : str):
+# noinspection PyMissingOrEmptyDocstring
+def merge_tables(table_by_name : Dict[str, List[Mapping[str, Any]]], join_key_names : List[str], separator : str, join_level_name : str):
     resulting_pivot = None
     for table_name, table_values in table_by_name.items():
         pi = _pivot(table_values, join_key_names, f'{table_name}{separator}')
@@ -90,7 +96,7 @@ def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[s
                 pi1[k] = v1
 
 
-def _pivot(table_values : List[Dict[str, Any]], key_names : List[str], prefix : str):
+def _pivot(table_values : List[Mapping[str, Any]], key_names : List[str], prefix : str):
     result = dict()
     for item in table_values:
         path = []
@@ -114,7 +120,7 @@ def _unpivot(pivot, key_names: List[str], index_prefix : str):
     return result
 
 
-def _unpivot_recursive(pivot_node: Dict[str, Any], current_index: Dict[str, Any], remaining_key_names: List[str], index_prefix : str, result):
+def _unpivot_recursive(pivot_node: Mapping[str, Any], current_index: Mapping[str, Any], remaining_key_names: List[str], index_prefix : str, result):
     if len(remaining_key_names) == 0:
         current_index.update(pivot_node)
         result.append(current_index)

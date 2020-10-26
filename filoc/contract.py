@@ -1,27 +1,42 @@
+"""
+This module contains the contracts of filoc classes. Among other it contains the ``FrontendContract`` and``BackendContract``, which
+custom frontends and backends need to implement.
+"""
+
 # -------------
 # Types aliases
 # -------------
 from abc import ABC
-from typing import TypeVar, Literal, Dict, Any, List, Generic, Optional
+from typing import TypeVar, Literal, Any, List, Generic, Optional, Mapping, Dict
 
 from fsspec import AbstractFileSystem
 
 TContent             = TypeVar('TContent')
 """Generic type of objects returned by ``Filoc.get_content(...)`` and expected by ``Filoc.write_content(...)``. 
-For example, in the ``'json'`` frontend, TContent is equal to `Dict[str,Any]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.Series`` """
+For example, in the ``'json'`` frontend, TContent is equal to `Mapping[str,Any]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.Series`` """
+
 TContents            = TypeVar('TContents')
 """Generic type of objects returned by ``Filoc.get_contents(...)`` and expected by ``Filoc.write_contents(...)``. 
-For example, in the ``'json'`` frontend, TContents is equal to `List[Dict[str,Any]]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.DataFrame`` """
+For example, in the ``'json'`` frontend, TContents is equal to `List[Mapping[str,Any]]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.DataFrame`` """
+
 PresetFrontends      = Literal['json', 'pandas']
 """Shortcuts used to designate filoc preset frontends"""
+
 PresetBackends       = Literal['json', 'yaml', 'pickle']
 """Shortcut used to designate filoc preset backends"""
+
+PropsConstraints     = Mapping[str, Any]
+"""key-values describing constraints to apply while filtering data. Currently only equality is supported."""
+
+ReadOnlyProps        = Mapping[str, Any]
+"""filoc intermediate data representation of a single data 'row'"""
+
 Props                = Dict[str, Any]
 """filoc intermediate data representation of a single data 'row'"""
-PropsConstraints     = Dict[str, Any]
-"""key-values describing constraints to apply while filtering data. Currently only equality is supported."""
+
 PropsList            = List[Props]
 """filoc intermediate data representation between the backend files and the frontend TContent and TContents objects"""
+
 
 # -----------------
 # Exception classes
@@ -30,6 +45,7 @@ class FrontendConversionError(ValueError):
     """Exception raised by filoc frontends, when the frontend encounters a conversion problem """
     def __init__(self, *args):
         super().__init__(*args)
+
 
 class SingletonExpectedError(FrontendConversionError):
     """Exception raised by filoc frontends, when the frontend expects a single entry but got multiple entries """
@@ -42,16 +58,17 @@ class SingletonExpectedError(FrontendConversionError):
 # TODO: Unit tests with locpath = folders instead of path
 # TODO: Unit tests with remote file system
 
+
 class BackendContract(ABC):
     """The abstract class that filoc backends need to implement."""
 
-    def read(self, fs : AbstractFileSystem, path : str, constraints : Dict[str, Any]) -> PropsList:
+    def read(self, fs : AbstractFileSystem, path : str, constraints : Mapping[str, Any]) -> PropsList:
         """Reads the data contained at ``path`` on the file system ``fs``, applies additional filters defined in ``constraints`` and convert the data to the filoc intermediate representation.
 
         Args:
             fs: File system implementation (see the `fsspec <https://github.com/intake/filesystem_spec/>`_ library)
             path: The path at which the data must be loaded from. It is a concrete form of the filoc ``locpath``. 
-            constraints: All contraints provided by the user to take into account.
+            constraints: All constraints provided by the user to take into account.
 
         Returns:
             PropsList: filoc intermediate representation between frontend and backend data (list of dictionary).
@@ -72,9 +89,8 @@ class BackendContract(ABC):
 class FrontendContract(Generic[TContent, TContents], ABC):
     """The abstract class that filoc frontends need to implement.
 
-    Args:
-        TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
-        TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
+    TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
+    TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
     def read_content(self, props_list : PropsList) -> TContent:
@@ -128,15 +144,13 @@ class FrontendContract(Generic[TContent, TContents], ABC):
 class Filoc(Generic[TContent, TContents], ABC):
     """ The contract of objects created by the filoc factory. This is the most important contract in the filoc library.
 
-    Args:
-        TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
-        TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
+    TContent ([Any]): The type returned by ``get_content(...)`` and expected by ``write_content(...)``
+    TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
     def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props) -> List[str]:
         """ Get the existing paths fulfilling the provided constraints. """
         raise NotImplementedError('Abstract')
-
 
     def lock(self):
         """Prevents other filoc instances to concurrently read or write any file in the filoc tree. Usage:
@@ -152,7 +166,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
-    def lock_info(self) -> Optional[Dict[str, Any]]:
+    def lock_info(self) -> Optional[Mapping[str, Any]]:
         """Returns the information contained in the lock file(s) augmented of the file timestamp if it exists, elsewhere null.
         For a single filoc, it returns simple key-values. 
         For nested filocs (composite), it returns the lock file information in the same tree structure as the filoc definition tree. 
@@ -180,7 +194,7 @@ class Filoc(Generic[TContent, TContents], ABC):
             constraints: Filter criteria used to shrink the result set. Defaults to None.
             **constraints_kwargs: additional constraints merge together with ``constraints`` argument
         Returns:
-            TContent: An instance of the frontend type for a single entry (ex: ``json`` frontend: Dict[str, Any], ``pandas`` frontend: pandas.Series)
+            TContent: An instance of the frontend type for a single entry (ex: ``json`` frontend: Mapping[str, Any], ``pandas`` frontend: pandas.Series)
 
         Raises:
             SingletonExpectedError: if more than one entry is selected after application of the ``constraints`` (behavior of filoc default frontends)
@@ -195,7 +209,7 @@ class Filoc(Generic[TContent, TContents], ABC):
             constraints: Filter criteria used to shrink the result set. Defaults to None.
             **constraints_kwargs: additional constraints merge together with ``constraints`` argument
         Returns:
-            TContents: An instance of the frontend types for multiple entries (ex: ``json`` frontend: List[Dict[str, Any]], ``pandas`` frontend: pandas.DataFrame)
+            TContents: An instance of the frontend types for multiple entries (ex: ``json`` frontend: List[Mapping[str, Any]], ``pandas`` frontend: pandas.DataFrame)
 
         Raises:
             FrontendConversionError: If the frontend cannot perform the conversion 
@@ -218,7 +232,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """Writes the ``content`` entry to the file system.
 
         Args:
-            content: The content accepted by the frontend (ex: ``json`` frontend: Dict[str, Any], ``pandas`` frontend: pandas.Series or Dict[str, Any])
+            content: The content accepted by the frontend (ex: ``json`` frontend: Mapping[str, Any], ``pandas`` frontend: pandas.Series or Mapping[str, Any])
             dry_run: If True, then only simulate the writing. The default value is False.
 
         Raises:
@@ -230,7 +244,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """Writes the ``contents`` entries to the file system.
 
         Args:
-            contents: The content accepted by the frontend (ex: ``json`` frontend: List[Dict[str, Any]], ``pandas`` frontend: pandas.DataFrame or List[Dict[str, Any]])
+            contents: The content accepted by the frontend (ex: ``json`` frontend: List[Mapping[str, Any]], ``pandas`` frontend: pandas.DataFrame or List[Mapping[str, Any]])
             dry_run: If True, then only simulate the writing. The default value is False.
 
         Raises:

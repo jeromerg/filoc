@@ -1,16 +1,18 @@
-import itertools
+"""
+This module contains the FilocIO class, used to work with files defined by a locpath: a path containing format placeholders.
+"""
 import logging
 import os
 import re
+import uuid
 from io import UnsupportedOperation
 from typing import Dict, Any, List, Mapping, Optional, Set
 from typing import Tuple
-from fsspec.core import OpenFile
-import pandas as pd
-import uuid
+
 import fsspec
 import parse
 from fsspec import AbstractFileSystem
+from fsspec.core import OpenFile
 
 from filoc.contract import PropsConstraints
 
@@ -27,22 +29,42 @@ _re_path_placeholder  = re.compile(r'({[^}]+})')
 # Helpers
 # -------
 def sort_natural(li: List[str]) -> List[str]:
-    # todo: support float too
+    """ Perform natural sort of string containing numbers. Floating number are currently supported but cannot be compared to integers (missing dot separator)"""
+    # TODO: support mix of int and float
     return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
 
 
-def coerce_nullable_mapping(d):
+def coerce_nullable_mapping(d) -> Optional[Mapping[str, Any]]:
+    """
+    Pass through Mapping or None instance, tries to call ``to_dict()`` method elsewhere
+    Args:
+        d:
+
+    Returns:
+        the coerced mapping of type ``Mapping[str, Any]`` or None
+    Raises:
+        TypeError: if ``d`` is neither an instance of Mapping, nor None, nor contains `to_dict()` method
+    """
     if d is None:
         return d
     if isinstance(d, Mapping):
-        return True;
+        return d
     if getattr(d, "to_dict", None):
         # especially valid for pandas Series
         return d.to_dict()
     raise TypeError(f"Expected instance of Mapping or implementing to_dict, got {type(d)}!")
 
 
-def mix_dicts_and_coerce(dict1 : Dict[str, Any], dict2 : Dict[str, Any]) -> Dict[str, Any]:
+def mix_dicts_and_coerce(dict1, dict2) -> Mapping[str, Any]:
+    """
+    Coerce dict1 and dict2 to Mapping and mix both together
+    Args:
+        dict1: first dictionary argument (either Mapping or implements `to_dict()`)
+        dict2: second dictionary argument (either Mapping or implements `to_dict()`)
+
+    Returns:
+        The combined Mapping
+    """
     dict1 = coerce_nullable_mapping(dict1)
     dict2 = coerce_nullable_mapping(dict2)
 
@@ -62,10 +84,15 @@ def mix_dicts_and_coerce(dict1 : Dict[str, Any], dict2 : Dict[str, Any]) -> Dict
 
 # TODO: Support path character escaping
 
+
 # -------------------
 # Class FilocIO
 # -------------------
 class FilocIO:
+    """
+    Class providing access to files, given the locpath definition. The locpath is a format string, which placeholders
+    are variables used by FilocIO to map variables to paths and paths to variables.
+    """
     def __init__(
         self, locpath: str, 
         writable: bool = False, 
@@ -89,13 +116,13 @@ class FilocIO:
         else:
             open_file = OpenFile(fs, some_valid_path)
 
-        # now build the normlized locpath, by replacing erstz stirng by the original placeholder strings
+        # now build the normalized locpath, by replacing erstz stirng by the original placeholder strings
         self.locpath = open_file.path
         for elt, ersatz in path_elts_and_ersatz:
             if ersatz:
                 self.locpath = self.locpath.replace(ersatz, elt)
 
-        self.fs = open_file.fs # type: AbstractFileSystem
+        self.fs = open_file.fs  # type: AbstractFileSystem
         self.path_parser = parse.compile(self.locpath)  # type: parse.Parser
 
         # Get the root folder: the last folder, that is not variable
@@ -103,16 +130,36 @@ class FilocIO:
         self.root_folder = self.fs.sep.join((self.root_folder + "dummy_to_ensure_subfolder").split(self.fs.sep)[:-1])  
 
         # parse library contains the _named_fields property, which provides us with the set of placeholder names
+        # noinspection PyProtectedMember
         self.path_props  = set(self.path_parser._named_fields)  # type: Set[str]
 
     # noinspection PyDefaultArgument
     def parse_path_properties(self, path: str) -> Dict[str, Any]:
+        """
+        Extract the ``self.locpath`` placeholder values contained in ``path``
+        Args:
+            path: path string
+
+        Returns:
+            A dictionary containing the "placeholder name" -> value mapping
+        """
         try:
             return self.path_parser.parse(path).named
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self.locpath} parser: {e}')
 
     def render_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+        """
+        Render the path defined by the provided placeholder values (``constraints``).
+        Args:
+            constraints: The placeholders values required by ``self.locpath``.
+            **constraints_kwargs: The placeholders values required by ``self.locpath``.
+
+        Returns:
+            The rendered path
+        Raises:
+            ValueError: If a placeholder value is missing
+        """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         undefined_keys = self.path_props - set(constraints)
 
@@ -121,6 +168,16 @@ class FilocIO:
         return self.locpath.format(**constraints)  # result should be normalized, because locpath is
 
     def render_glob_path(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> str:
+        """
+        Render a glob path defined by the provided placeholder values (``constraints``). The missing missing placeholders
+        are replaced by ``*`` in the glob path.
+        Args:
+            constraints: The placeholders values defined in ``self.locpath``.
+            **constraints_kwargs: The placeholders values defined in ``self.locpath``.
+
+        Returns:
+            A glob path
+        """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         provided_keys = set(constraints)
 
@@ -139,20 +196,67 @@ class FilocIO:
         return glob_path  # result should be normalized, because locpath is
 
     def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[str]:
+        """
+        Gets the list of all existing and valid paths fulfilling the provided constraints
+        Args:
+            constraints: The equality constraints applied to the ``self.locpath`` placeholders
+            **constraints_kwargs: The equality constraints applied to the ``self.locpath`` placeholders
+
+        Returns:
+            The list of valid and existing paths fulfilling the provided constraints
+        """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         paths = self.fs.glob(self.render_glob_path(constraints))
         return sort_natural(paths)
 
     def list_paths_and_props(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> List[Tuple[str, Dict[str, Any]]]:
+        """
+        Gets the list of all existing and valid paths fulfilling the provided constraints, along with the list of associated placeholder values
+        Args:
+            constraints: The equality constraints applied to the ``self.locpath`` placeholders
+            **constraints_kwargs: The equality constraints applied to the ``self.locpath`` placeholders
+
+        Returns:
+            A list of tuples containing for each valid path, the path and the list of related placeholder values
+        """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         paths = self.list_paths(constraints)
         return [(p, self.parse_path_properties(p)) for p in paths]
 
     def exists(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Any) -> bool:
+        """
+        Checks if the path defined by the provided placeholder values (``constraints``) exists
+        Args:
+            constraints: The equality constraints applied to the ``self.locpath`` placeholders
+            **constraints_kwargs: The equality constraints applied to the ``self.locpath`` placeholders
+
+        Returns:
+            True if the path exists, False elsewhere
+        """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         return self.fs.exists(self.render_path(constraints))
 
-    def open(self, constraints : PropsConstraints, mode="rb", block_size=None, cache_options=None, **kwargs):
+    def open(
+            self,
+            constraints   : PropsConstraints,
+            mode          : str = "rb",
+            block_size    : int = None,
+            cache_options : Optional[Dict] = None,
+            **kwargs
+    ):
+        """
+        Opens the path defined by the provided placeholder values (``constraints``)
+
+        Args:
+            constraints: The equality constraints applied to the ``self.locpath`` placeholders
+            mode: See builtin ``open()``
+            block_size: Some indication of buffering - this is a value in bytes
+            cache_options: Extra arguments to pass through to the cache.
+            **kwargs: Additional keyed arguments passed to ``fsspec.OpenFile.open(...)``
+
+        Returns:
+            a file-like object from the underlying fsspec filesystem
+        """
         is_writing = len(set(mode) & set("wa+")) > 0
         if is_writing and not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
@@ -168,6 +272,16 @@ class FilocIO:
 
     # noinspection PyDefaultArgument
     def delete(self, constraints : Optional[PropsConstraints] = {}, dry_run=False):
+        """
+        Delete the path defined by the provided placeholder values (``constraints``)
+
+        Args:
+            constraints: The equality constraints applied to the ``self.locpath`` placeholders
+            dry_run: If True, only simulates the deletion
+        """
+
+        # TODO: Unit test to test deletion of folders
+
         if not self.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable deleting')
 
@@ -179,7 +293,12 @@ class FilocIO:
             log.info(f'{dry_run_log_prefix}Deleting "{path}"')
             if dry_run:
                 continue
-            self.fs.delete(path)
+            if self.fs.isfile(path):
+                self.fs.delete(path)
+            elif self.fs.isdir(path):
+                self.fs.rm(path, recursive=True)
+            else:
+                raise ValueError(f'path is neither a direction nor a file: "{path}"')
         log.info(f'{dry_run_log_prefix}Deleted {len(path_to_delete)} files with path_props "{constraints}"')
 
     def __eq__(self, other):

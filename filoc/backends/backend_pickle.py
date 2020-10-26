@@ -25,10 +25,12 @@ class PickleBackend(BackendContract):
         self.is_singleton = is_singleton
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
+        """(see BackendContract contract)"""
         with fs.open(path) as f:
             return filter_and_coerce_loaded_file_content(path, pickle.load(f), constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
+        """(see BackendContract contract)"""
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         with fs.open(path, 'w') as f:
             return pickle.dump(coerce_file_content_to_write(path, props_list, self.is_singleton), f)

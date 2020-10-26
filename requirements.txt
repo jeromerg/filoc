@@ -16,3 +16,11 @@ keras
 matplotlib
 torch 
 torchvision
+
+# IDE
+dash
+jupyter-dash
+ipywidgets
+jupyterlab-git
+# jupyter labextension install jupyterlab-plotly
+# jupyter lab build
