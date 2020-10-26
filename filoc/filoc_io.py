@@ -2,9 +2,8 @@ import itertools
 import logging
 import os
 import re
-from collections import OrderedDict
 from io import UnsupportedOperation
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, Any, List, Mapping, Optional, Set
 from typing import Tuple
 from fsspec.core import OpenFile
 import pandas as pd
@@ -32,15 +31,24 @@ def sort_natural(li: List[str]) -> List[str]:
     return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
 
 
+def coerce_nullable_mapping(d):
+    if d is None:
+        return d
+    if isinstance(d, Mapping):
+        return True;
+    if getattr(d, "to_dict", None):
+        # especially valid for pandas Series
+        return d.to_dict()
+    raise TypeError(f"Expected instance of Mapping or implementing to_dict, got {type(d)}!")
+
+
 def mix_dicts_and_coerce(dict1 : Dict[str, Any], dict2 : Dict[str, Any]) -> Dict[str, Any]:
-    if isinstance(dict1, pd.Series):
-        dict1 = dict1.to_dict()
-    if isinstance(dict2, pd.Series):
-        dict2 = dict2.to_dict()
+    dict1 = coerce_nullable_mapping(dict1)
+    dict2 = coerce_nullable_mapping(dict2)
 
     dict2 = None if len(dict2) == 0 else dict2
     if dict1 and dict2:
-        result = OrderedDict()
+        result = dict()
         result.update(dict1)
         result.update(dict2)
         return result
@@ -49,7 +57,7 @@ def mix_dicts_and_coerce(dict1 : Dict[str, Any], dict2 : Dict[str, Any]) -> Dict
     elif dict2:
         return dict2
     else:
-        return OrderedDict()
+        return dict()
 
 
 # TODO: Support path character escaping
@@ -119,7 +127,7 @@ class FilocIO:
         undefined_keys = self.path_props - provided_keys
         defined_keys = self.path_props - undefined_keys
 
-        path_values = OrderedDict()
+        path_values = dict()
         path_values.update({(k, constraints[k]) for k in defined_keys})
 
         glob_path = self.locpath

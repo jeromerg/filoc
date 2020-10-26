@@ -1,6 +1,5 @@
 """ Filoc default CSV backend implementation """
 import os
-from collections import OrderedDict
 from csv import DictWriter, DictReader
 from typing import Dict, Any
 
@@ -22,16 +21,17 @@ class CsvBackend(BackendContract):
         loc = filoc('/my/locpath/{id}/data.csv', backend='csv')
     """
 
-    def __init__(self, is_singleton) -> None:
+    def __init__(self, is_singleton, encoding) -> None:
         """(see BackendContract contract)"""
         super().__init__()
         self.is_singleton = is_singleton
+        self.encoding     = encoding
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
         """(see BackendContract contract)"""
-        with fs.open(path) as f:
+        with fs.open(path, 'r', encoding=self.encoding) as f:
             reader = DictReader(f)
-            props_list = [OrderedDict(row) for row in reader]
+            props_list = [dict(row) for row in reader]
             return filter_and_coerce_loaded_file_content(path, props_list, constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
@@ -42,7 +42,7 @@ class CsvBackend(BackendContract):
         for props in props_list:
             fieldnames |= props.keys()
 
-        with fs.open(path, 'w') as f:
+        with fs.open(path, 'w', encoding=self.encoding) as f:
             writer = DictWriter(f, fieldnames)
             writer.writeheader()
             writer.writerows(props_list)

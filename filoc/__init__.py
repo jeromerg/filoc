@@ -1,18 +1,14 @@
-from collections import OrderedDict
-from typing import Union, Dict, Optional, List, Any, Iterable
-
-from pandas import Series, DataFrame
-
 from .contract import Filoc
-from .core import FilocComposite, FilocSingle
 from .filoc_io import FilocIO
-from filoc.factories import filoc
+from filoc.factories import filoc, filoc_json, filoc_pandas
 
 __version__ = '0.0.6'
 
 
 __all__     = [
     'filoc',
+    'filoc_json',
+    'filoc_pandas',
     'Filoc',
     'FilocIO',
 ]

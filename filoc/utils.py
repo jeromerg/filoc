@@ -1,7 +1,6 @@
 import json
 import copy
 import logging
-from collections import OrderedDict
 from typing import Dict, Any, List, Union
 
 from orderedset import OrderedSet
@@ -76,8 +75,8 @@ def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[s
     if len(remaining_key_names) == 0:
         pi1.update(pi2)
     else:
-        cp1 = pi1.pop(_missing_key) if _missing_key in pi1 else OrderedDict()
-        cp2 = pi2.pop(_missing_key) if _missing_key in pi2 else OrderedDict()
+        cp1 = pi1.pop(_missing_key) if _missing_key in pi1 else dict()
+        cp2 = pi2.pop(_missing_key) if _missing_key in pi2 else dict()
         all_keys = OrderedSet(pi1) | OrderedSet(pi2)
 
         if len(all_keys) == 0:
@@ -92,7 +91,7 @@ def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[s
 
 
 def _pivot(table_values : List[Dict[str, Any]], key_names : List[str], prefix : str):
-    result = OrderedDict()
+    result = dict()
     for item in table_values:
         path = []
         curr_level = result
@@ -100,7 +99,7 @@ def _pivot(table_values : List[Dict[str, Any]], key_names : List[str], prefix : 
             key = item.pop(key_name, _missing_key)
             path.append(key)
             if key not in curr_level:
-                curr_level[key] = OrderedDict()
+                curr_level[key] = dict()
             curr_level = curr_level[key]
 
         for (k, v) in item.items():
@@ -111,7 +110,7 @@ def _pivot(table_values : List[Dict[str, Any]], key_names : List[str], prefix : 
 
 def _unpivot(pivot, key_names: List[str], index_prefix : str):
     result = []
-    _unpivot_recursive(pivot, OrderedDict(), key_names, index_prefix, result)
+    _unpivot_recursive(pivot, dict(), key_names, index_prefix, result)
     return result
 
 

@@ -9,7 +9,6 @@ import hashlib
 import pickle
 import random
 from abc import ABC
-from collections import OrderedDict
 from datetime import datetime
 from io import UnsupportedOperation
 from typing import Dict, Any, NamedTuple, Optional, Tuple, Generic, Iterable, Set
@@ -41,6 +40,7 @@ class RunningCache(NamedTuple):
 # TODO: FilocSingle: Introduce new cache option "assume_immutable", to avoid even check for filestamp
 # TODO: FilocComposite: Unit tests (and fixes) of complex join cases, where constraints reduce to set of result of a single nested filoc
 # TODO: FilocSingle: Introduce explicit and configurable logging mechanism to enable logging of write accesses (especially useful with the dry_run flag)
+# TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
 
 # ---------
 # FilocSingle
@@ -52,33 +52,33 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
     # noinspection PyDefaultArgument
     def __init__(
             self,
-            locpath                : str                 ,
-            writable               : bool                ,
-            frontend               : FrontendContract[TContent, TContents],
-            backend                : BackendContract     ,
-            cache_locpath          : str                 ,
-            timestamp_col          : str                 ,
-            fs                     : Optional[AbstractFileSystem],
+            locpath       : str                                  ,
+            writable      : bool                                 ,
+            frontend      : FrontendContract[TContent, TContents],
+            backend       : BackendContract                      ,
+            cache_locpath : str                                  ,
+            cache_fs      : Optional[AbstractFileSystem]         ,
+            timestamp_col : str                                  ,
+            fs            : Optional[AbstractFileSystem]         ,
     ):
         """
         if cache_locpath is relative, then it will be relative to result_locpath
         """
 
-        self.filoc_io = FilocIO(locpath, writable=writable, fs=fs)
-        self.frontend = frontend
-        self.backend  = backend
+        self.filoc_io      = FilocIO(locpath, writable=writable, fs=fs)
+        self.frontend      = frontend
+        self.backend       = backend
 
         # cache loc
         self.cache_loc = None
         if cache_locpath is not None:
-            if not os.path.isabs(cache_locpath):
-                cache_locpath = self.filoc_io.root_folder + '/' + cache_locpath
-            self.cache_loc = FilocIO(cache_locpath, writable=True)
+            self.cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
         self.timestamp_col = timestamp_col
 
     def list_paths(self, constraints : Optional[PropsConstraints] = None, **constraints_kwargs : Props):
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         return self.filoc_io.list_paths(constraints)
+
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
@@ -231,7 +231,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                         with self.cache_loc.open(cache_file_path_props, 'rb') as f:
                             running_cache = RunningCache(cache_file_path_props, pickle.load(f))
                     else:
-                        running_cache = RunningCache(cache_file_path_props, OrderedDict())
+                        running_cache = RunningCache(cache_file_path_props, dict())
 
             # check whether cache entry is still valid
             if self.cache_loc:
@@ -315,7 +315,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
     def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, datetime, Props]:
         path_props = {}
         timestamp  = None
-        other_props      = OrderedDict()
+        other_props      = dict()
         for (k, v) in keyvalues.items():
             if k in self.path_props:
                 path_props[k] = v
@@ -402,11 +402,11 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
     def _write_props_list(self, props_list : PropsList, dry_run=False):
         # prepare props_list by filoc_name
         props_list_by_filoc_name = {
-            filoc_name : [ OrderedDict() for _ in range(len(props_list)) ]
+            filoc_name : [ dict() for _ in range(len(props_list)) ]
             for filoc_name, filoc in self.filoc_by_name.items()
             if filoc.writable
         }
-        props_list_by_filoc_name[self.join_level_name] = [ OrderedDict() for _ in range(len(props_list)) ]
+        props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
 
         # then fill
         split_cache = {}

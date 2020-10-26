@@ -1,5 +1,6 @@
 """ Filoc default JSON backend implementation """
 import json
+from json import encoder
 import os
 from typing import Dict, Any
 
@@ -17,12 +18,13 @@ class JsonBackend(BackendContract):
 
         loc = filoc('/my/locpath/{id}/data.json', backend='json')
     """
-    def __init__(self, is_singleton) -> None:
+    def __init__(self, is_singleton, encoding) -> None:
         super().__init__()
         self.is_singleton = is_singleton
+        self.encoding     = encoding
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
-        with fs.open(path) as f:
+        with fs.open(path, encoding=self.encoding) as f:
             try:
                 content = json.load(f)
             except Exception as e:
@@ -32,5 +34,5 @@ class JsonBackend(BackendContract):
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        with fs.open(path, 'w') as f:
+        with fs.open(path, 'w', encoding=self.encoding) as f:
             return json.dump(coerce_file_content_to_write(path, props_list, self.is_singleton), f, indent=2)

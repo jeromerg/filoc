@@ -17,15 +17,16 @@ class YamlBackend(BackendContract):
 
         loc = filoc('/my/locpath/{id}/data.yaml', backend='yaml')
     """
-    def __init__(self, is_singleton) -> None:
+    def __init__(self, is_singleton, encoding) -> None:
         super().__init__()
         self.is_singleton = is_singleton
+        self.encoding     = encoding
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
-        with fs.open(path) as f:
+        with fs.open(path, encoding=self.encoding) as f:
             return filter_and_coerce_loaded_file_content(path, yaml.load(f), constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         fs.makedirs(os.path.dirname(path), exist_ok=True)
-        with fs.open(path, 'w') as f:
+        with fs.open(path, 'w', encoding=self.encoding) as f:
             return yaml.dump(coerce_file_content_to_write(path, props_list, self.is_singleton), f, indent=2)
