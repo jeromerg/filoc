@@ -22,7 +22,7 @@ For example, in the ``'json'`` frontend, TContents is equal to `List[Mapping[str
 PresetFrontends      = Literal['json', 'pandas']
 """Shortcuts used to designate filoc preset frontends"""
 
-PresetBackends       = Literal['json', 'yaml', 'pickle']
+PresetBackends       = Literal['json', 'yaml', 'csv', 'pickle']
 """Shortcut used to designate filoc preset backends"""
 
 Constraint           = Any
