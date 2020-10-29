@@ -13208,7 +13208,7 @@ Successfully installed filoc-0.0.10
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark"><code>filoc(...)</code> is a factory function that returns a <code>FilocContract</code> object, which is a kind of bi-directional adapter between a DataFrame and files defined in a structured manner.</span></p>
+<p><span class="post-remark"><code>filoc(...)</code> is a factory function that returns a <code>Filoc</code> object, which is a kind of bi-directional adapter between a DataFrame and files defined in a structured manner.</span></p>
 
 </div>
 </div>
@@ -13668,7 +13668,7 @@ Successfully installed filoc-0.0.10
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><span class="post-remark"><code>FilocContract.write_contents(...)</code> created all the 54 hyperparameters files at once! It substituted the <code>sim</code> variable defined in the filoc path <code>./temp/iris/sim={sim:d}/hyperparameters.json</code>  by the <code>sim</code> value defined in the <code>sim_hyperparameters</code> list, then created the files and filled them with the remaining variables of the object.
+<p><span class="post-remark"><code>Filoc.write_contents(...)</code> created all the 54 hyperparameters files at once! It substituted the <code>sim</code> variable defined in the filoc path <code>./temp/iris/sim={sim:d}/hyperparameters.json</code>  by the <code>sim</code> value defined in the <code>sim_hyperparameters</code> list, then created the files and filled them with the remaining variables of the object.
 </span></p>
 <p>Let's check the created files with the terminal <code>ls</code> command:</p>
 
@@ -14439,7 +14439,7 @@ executor2: no simulation to process
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><span class="filoc">filoc</span> allows us to seamlessly analyze the simulations, namely during and after the execution. Look how it works.
-We first create a new <code>FilocContract</code> that joins all file contents together:</p>
+We first create a new <code>Filoc</code> that joins all file contents together:</p>
 
 </div>
 </div>
@@ -14465,7 +14465,7 @@ We first create a new <code>FilocContract</code> that joins all file contents to
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><span class="post-remark">`cache_locpath` is used to improve the processing in the case of a great amount of files to process, especially if the files are store on a remote file system</span></p>
-<p><span class="post-remark">By feeding `filoc(...)` with a dictionary, we build a composite `FilocContract`, which is able to work with multiple files groups.</span></p>
+<p><span class="post-remark">By feeding `filoc(...)` with a dictionary, we build a composite `Filoc`, which is able to work with multiple files groups.</span></p>
 <p>If you think of each data group as building a SQL table (where each file contains key-values which defines the values of a single row), then <span class="filoc">filoc</span> performs a join operation on all tables. The join keys are the  placeholders found in the paths. Let's see the result:</p>
 
 </div>
