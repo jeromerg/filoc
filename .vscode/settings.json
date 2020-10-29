@@ -21,5 +21,6 @@
         "**/.factorypath": true
     },
     "python.linting.enabled": true,
-    "python.languageServer": "Pylance"
+    "python.languageServer": "Pylance",
+    "python.pythonPath": "/usr/bin/python3"
 }

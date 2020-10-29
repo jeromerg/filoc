@@ -35,7 +35,7 @@ def _get_frontend(frontend : Union[PresetFrontends, FrontendContract]):
 def _get_backend(backend : Union[PresetBackends, BackendContract], is_singleton : bool, encoding : str):
     if backend == 'csv':
         from filoc.backends import CsvBackend
-        return CsvBackend(is_singleton, encoding)
+        return CsvBackend(encoding)
     elif backend == 'json':
         from filoc.backends import JsonBackend
         return JsonBackend(is_singleton, encoding)

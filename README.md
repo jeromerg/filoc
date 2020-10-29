@@ -2,7 +2,6 @@
 
 <img src="./filoc.svg" alt="filoc" width="150"/>
 
-
 The Filoc library enables you to:
 
 - Visualize the content of a *set of files* as a pandas DataFrame
@@ -20,8 +19,13 @@ You see two placeholders, namely `country` and `company`. Both are part of the d
 | ---- | ------- | ------- | ------- | ----- |
 | ...  | ...     | ...     | ...     | ...   |
 
-
 This is the key feature of filoc, which enables you to choose the best path structure for **your needs** and at the same time to manipulate the whole data set in a single DataFrame!
+
+## Notebook Examples
+
+[Machine Learning Workflow Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
+ 
+[Data Analysis from the John Hopkins University Covid-19 Data on Github](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
 
 ## Basic example
 
@@ -190,7 +194,7 @@ Name     | Description   | option singleton | option encoding
 `json`   | json files    | Yes              | Yes
 `yaml`   | yaml files    | Yes              | Yes
 `csv`    | csv files     | No               | Yes
-`pickle` | pickle files  | No               | No
+`pickle` | pickle files  | Yes              | No
 
 ### Option *singleton*
 
@@ -232,7 +236,7 @@ The `filoc(...)` factory accepts a `cache_locpath` and `cache_fs` arguments, use
 to 
 
 
-# Concurrent Safe writing
+## Concurrent safe writing
 
 In concurrent scenarios, you need to synchronize the writing of files. Filoc enables 
 
@@ -254,38 +258,6 @@ It has the following advantages in comparison to existing solution like neptune:
 - Framework agnostic
 
 To read how you can use filoc in Machine Learning, see the [Filoc Machine Learning Tour](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html).
-
-
-
-Install
--------
-
-```shell
-pip install filoc
-```
-
-Import
-------
-
-```python
-from filoc import filoc
-```
-
-Simple Example
---------------
-
-todo
-
-Features
---------
-
-- Composite *file structure*
-- Multiple frontends
-- Multiple backends
-- Customizable frontend
-- Customizable backend
-- Locking
-- Caching
 
 
 

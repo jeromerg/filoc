@@ -21,18 +21,17 @@ class CsvBackend(BackendContract):
         loc = filoc('/my/locpath/{id}/data.csv', backend='csv')
     """
 
-    def __init__(self, is_singleton, encoding) -> None:
+    def __init__(self, encoding) -> None:
         """(see BackendContract contract)"""
         super().__init__()
-        self.is_singleton = is_singleton
-        self.encoding     = encoding
+        self.encoding = encoding
 
     def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
         """(see BackendContract contract)"""
         with fs.open(path, 'r', encoding=self.encoding) as f:
             reader = DictReader(f)
             props_list = [dict(row) for row in reader]
-            return filter_and_coerce_loaded_file_content(path, props_list, constraints, self.is_singleton)
+            return filter_and_coerce_loaded_file_content(path, props_list, constraints, False)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         """(see BackendContract contract)"""
