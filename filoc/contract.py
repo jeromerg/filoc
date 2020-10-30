@@ -6,10 +6,14 @@ custom frontends and backends need to implement.
 # -------------
 # Types aliases
 # -------------
+import logging
 from abc import ABC
 from typing import TypeVar, Literal, Any, List, Generic, Optional, Mapping, Dict
 
 from fsspec import AbstractFileSystem
+
+# set logging level to WARN. User can override the level to info, to get more infos
+logging.getLogger('filoc').setLevel(logging.WARN)
 
 TContent             = TypeVar('TContent')
 """Generic type of objects returned by ``Filoc.get_content(...)`` and expected by ``Filoc.write_content(...)``. 

@@ -10,7 +10,7 @@ from orderedset import OrderedSet
 
 from filoc.contract import PropsList
 
-log = logging.getLogger('filoc_utils')
+log = logging.getLogger('filoc')
 
 _missing_key = object()
 

@@ -21,18 +21,18 @@ You see two placeholders, namely `country` and `company`. Both are part of the d
 
 This is the key feature of filoc, which enables you to choose the best path structure for **your needs** and at the same time to manipulate the whole data set in a single DataFrame!
 
-## Notebook Examples
+## Use Cases (Jupyter Notebook)
 
 [Machine Learning Workflow Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
  
-[Data Analysis from the John Hopkins University Covid-19 Data on Github](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
+[Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
 
 ## Basic example
 
 ### Read all files
-Let's see concretely how to use filoc to simply read the whole *set of files*. 
+Let's see concretely how to use filoc to simply read the whole *set of files* defined by the previous format path `/data/{country}/{company}/info.json`. 
 
-First you need to import filoc module and instantiate a *Filoc* isntante with the appropriate format path: 
+First we need to import the filoc module and create a *Filoc* instance with the appropriate format path: 
 
 ```python
 # import the filoc factory
@@ -180,9 +180,63 @@ It enables filoc to work with the following file systems:
 
 ## Composite
 
-Filoc supports advanced scenarios, where multiple *set of files* are joined together mapping to a single DataFrame. 
-This is especially useful if you need to aggregate files from different origin and with different contents. 
-For example you can combine input with output data.
+Filoc instances can be joined together. The simplest syntax for that is to replace the single format path by a keyed list of path:
+
+```python
+mloc = filoc({
+    'contact' : '/data/{country}/{company}/info.json',
+    'finance' : '/data/{country}/{company}/{year:d}_revenue.json'
+})
+```
+
+The `contact` and `finance` keys are the name of the sub-filocs.
+
+You can also nest filocs together:
+
+```python
+mloc = filoc({
+    'contact' : contact_loc,
+    'finance' : filoc('/data/{country}/{company}/{year:d}_revenue.json', writable=True)
+})
+```
+
+The second syntax is especially important, if you need to override the configuration for a specific "sub-filoc". In the previous example, the second "sub-filoc" 'finance' is declared "writable", whereas the first one remains readonly.
+
+Now, see how such a composite filoc works: 
+
+```python
+df = read_contents() 
+
+print(df)
+
+# OUTPUT
+#   index.country  index.company  index.year      contact.address   contact.phone finance.revenue
+#   -------------  -------------  ---------- --------------------  -------------- ---------------
+# 0        France            OVH        2019              Roubaix    +33681906730        10256745
+# 1       Germany             DF        2019 Ismaning (by Munich)  +4989998288026        14578415
+# 2       Germany         Strato        2019               Berlin    +49303001460        54657631
+# 3        France            OVH        2020              Roubaix    +33681906730        11132643
+# 4       Germany             DF        2020 Ismaning (by Munich)  +4989998288026        37456466
+# 5       Germany         Strato        2020               Berlin    +49303001460        54411544
+```
+
+filoc join the data from the two *set of files* together. It uses the format placeholders from the format path as join keys, to try to match the rows together. The shared keys are prefixed by `index.` whereas the attributes found in the files themselves are prefixed by the named of the filoc.
+
+In the example, we set the finance filoc writable, so we can edit the dataframe and save back the result:
+
+```python
+df.loc[ (df['index.year'] == 2019) & (df['index.company'] == 'OVH'), 'finance.revenue'] = 0
+```
+
+You can check that the file content has changed with the `cat` shell command:
+
+```
+$> cat /data/France/OVH/2019_revenue.json
+{
+  "revenue": 0
+}
+
+```
 
 ## Default Backends 
 
@@ -232,37 +286,41 @@ That way, you can implement a frontend to map files to spark dataframes or to Ex
 
 ## Caching
 
-The `filoc(...)` factory accepts a `cache_locpath` and `cache_fs` arguments, used
-to 
+The `filoc(...)` factory accepts a `cache_locpath` and `cache_fs` arguments. This feature is particularly useful when you work on remote file system or when the backend process a large amount of data. The cache is invalidated when the path timestamp has changed on the file system.
+
+The `cache_locpath` may contain format placeholders. In that case, the cache is splitted in multiple files. 
+This features allows to "encapsulate" the cache data in the same folder as the original data, or in the same folder structure as the original data.
+
+The `cache_fs` is optional and allows to specify a *fsspec* file system instance to overcome the limitations of `protocol://path` syntax, for example, if you need to pass credentials of some remote file system.
 
 
-## Concurrent safe writing
+```python
+loc = filoc('/data/{country}/{company}/info.json', cache_locpath='/cache/{country}/cache.dat')
+```
 
-In concurrent scenarios, you need to synchronize the writing of files. Filoc enables 
 
-Machine Learning
-----------------
 
-(See the [Filoc Machine Learning Tour](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html))
+## Locking
 
-Machine learning is the filoc devoted application field. Filoc enables to scale up from a single machine development to multiple server trainings without any other tools and without any changes in your code. Filoc is simple yet powerful to:
+A simple locking mechanism allows to synchronize the reading and and writing of files:
 
-- Prepare hyperparameters
-- Schedule simulations
-- Analyze results
 
-It has the following advantages in comparison to existing solution like neptune:
+```python
+with loc.lock():
+    series = loc.read_content(country='Germany', company='DF')
+    series.phone = "+49 (0)89/998288026"
+    loc.write_content(series)
+```
 
-- No Server
-- No Database
-- Framework agnostic
+In this example, the reading and writing is garanteed to be concurrent safe.
+Because filoc works with local and remote file systems, the locking implementation can not leverage the locking
+mechanism provided by local file systems. The locking mechanism is thus file based, what means that the protection only works against concurrent accesses that use the same call convention inside the `Filoc.lock()` statement.
 
-To read how you can use filoc in Machine Learning, see the [Filoc Machine Learning Tour](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html).
 
+<img src="./enjoy_filoc.svg" alt="enjoy_filoc" width="800"/>     
 
 
 [format string]: https://docs.python.org/3/library/string.html#format-string-syntax
-
 [local]: https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.implementations.local.LocalFileSystem
 [memory]: https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.implementations.memory.MemoryFileSystem
 [zip]: https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.implementations.zip.ZipFileSystem

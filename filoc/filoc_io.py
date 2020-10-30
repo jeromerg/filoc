@@ -16,7 +16,7 @@ from fsspec.core import OpenFile
 
 from filoc.contract import Constraints, Constraint
 
-log = logging.getLogger('rawfiloc')
+log = logging.getLogger('filoc')
 
 # ---------
 # Constants

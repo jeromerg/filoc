@@ -243,11 +243,11 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 if path_props_hashable in running_cache.cache_by_file_path_props:
                     path_cached_entry = running_cache.cache_by_file_path_props[path_props_hashable]
                     if path_cached_entry['timestamp'] == f_timestamp:
-                        log.info(f'Path analysis cached: {path}')
+                        log.info(f'Path data cached: "{path}"')
                         result.extend(path_cached_entry['props_list'].copy())  # copy from cache
                         continue
                     else:
-                        log.info(f'Cache out of date for path {path}')
+                        log.info(f'Cache out of date for path "{path}"')
 
             # cache is not valid: read path directly!
 
@@ -412,14 +412,15 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         self._write_props_list(props_list, dry_run=dry_run)
 
     def _write_props_list(self, props_list : PropsList, dry_run=False):
-        # prepare props_list by filoc_name
-        props_list_by_filoc_name = {
-            filoc_name : [ dict() for _ in range(len(props_list)) ]
-            for filoc_name, filoc in self.filoc_by_name.items()
-            if filoc.filoc_io.writable
-        }
+        # prepare empty props_list by filoc_name
+        props_list_by_filoc_name = {}
         props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
-
+        for filoc_name, filoc in self.filoc_by_name.items():
+            if filoc.filoc_io.writable:
+                props_list_by_filoc_name[filoc_name] = [ dict() for _ in range(len(props_list)) ]
+            else:
+                log.info(f'write operation skipped for "{filoc_name}" readonly Filoc')
+        
         # then fill
         split_cache = {}
         for row_id, props in enumerate(props_list):

@@ -26,7 +26,7 @@ class TestMultiloc(unittest.TestCase):
         pass
 
     def test_write_and_read_contents(self):
-        # ACT 1
+        # ACT 1 (write)
         self.conf_wloc.write_contents([
             {"simid": 1, "confA" : "Q"},
             {"simid": 2, "confA" : "R"},
@@ -62,13 +62,32 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual('{"b": 3000}', json.dumps(hyp3, sort_keys=True))
         self.assertEqual('{"b": 4000}', json.dumps(hyp4, sort_keys=True))
 
-        # ACT 2
+        # ACT 2 (read)
         p = mloc.read_contents(epid=10)
         self.assertEqual(len(p), 2)
 
         self.assertEqual(
             '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3000}]',
             json.dumps(p, sort_keys=True))
+
+        # ACT 3 (update)
+        p[1]['res.b'] = 3333
+        mloc.write_contents(p)
+        
+        self.assertEqual(
+            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3333}]',
+            json.dumps(p, sort_keys=True))
+
+        # ACT 3 (add attribute)
+        p[1]['res.c'] = 'NEW'
+        mloc.write_contents(p)
+        
+        self.assertEqual(
+            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3333, "res.c": "NEW"}]',
+            json.dumps(p, sort_keys=True))
+
+        
+
 
 
 if __name__ == '__main__':
