@@ -65,7 +65,6 @@ class SingletonExpectedError(FrontendConversionError):
 # Abstract classes
 # ----------------
 # TODO: Unit tests with locpath = folders instead of path
-# TODO: Unit tests with remote file system
 
 
 class BackendContract(ABC):

@@ -35,9 +35,6 @@ class _RunningCache(NamedTuple):
     cache_by_file_path_props : Dict[ReadOnlyProps, Dict[str, Any]]  # key-values expected by (this) locpath props
 
 
-# TODO: FilocSingle: Introduce new cache option "assume_immutable", to avoid even check for file timestamp
-# TODO: FilocComposite: Unit tests (and fixes) of complex join cases, where constraints reduce to set of result of a single nested filoc
-# TODO: FilocSingle: Introduce explicit and configurable logging mechanism to enable logging of write accesses (especially useful with the dry_run flag)
 # TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
 
 
@@ -46,7 +43,6 @@ class _RunningCache(NamedTuple):
 # ---------
 class FilocSingle(Filoc[TContent, TContents], ABC):
     """ Filoc implementation for a single locpath """
-    # TODO: Do not inherit from FilocIO, instead introduce composition + getter properties for locpath a.o.. Motivation is to simplify FilocSingle public contract (a.o. displayed in jupyter on autocomplete)
 
     # noinspection PyDefaultArgument
     def __init__(
