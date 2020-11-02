@@ -9,15 +9,15 @@ from filoc import filoc_json, FilocIO
 
 class TestMultiloc(unittest.TestCase):
     def setUp(self):
-        self.maxDiff      = None
-        self.test_dir     = tempfile.mkdtemp().replace('\\', '/')
+        self.maxDiff               = None
+        self.test_dir              = tempfile.mkdtemp().replace('\\', '/')
         self.path_fmt_simid_config = self.test_dir + r'/somewhere1/simid={simid:d}/config.json'
-        self.path_fmt_hyp = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
-        self.path_fmt_res = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
-        self.conf_wloc      = filoc_json(self.path_fmt_simid_config, writable=True)
-        self.conf_loc      = filoc_json(self.path_fmt_simid_config, writable=False)
-        self.hyp_loc      = filoc_json(self.path_fmt_hyp, writable=True)
-        self.res_loc      = filoc_json(self.path_fmt_res, writable=True)
+        self.path_fmt_hyp          = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
+        self.path_fmt_res          = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
+        self.conf_wloc             = filoc_json(self.path_fmt_simid_config, writable=True )
+        self.conf_loc              = filoc_json(self.path_fmt_simid_config, writable=False)
+        self.hyp_loc               = filoc_json(self.path_fmt_hyp         , writable=True )
+        self.res_loc               = filoc_json(self.path_fmt_res         , writable=True )
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -85,9 +85,6 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual(
             '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3333, "res.c": "NEW"}]',
             json.dumps(p, sort_keys=True))
-
-        
-
 
 
 if __name__ == '__main__':

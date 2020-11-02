@@ -29,22 +29,17 @@ class TestFilocJson(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.test_dir)
 
-    def test_read_contents(self):
+    def test_read_write_read(self):
         wloc = FilocIO(self.path_fmt, writable=True)
-        with wloc.open({"simid": 1, "epid": 10}, "w") as f:
-            json.dump({'a': 100}, f)
-        with wloc.open({"simid": 1, "epid": 20}, "w") as f:
-            json.dump({'a': 200}, f)
-        with wloc.open({"simid": 2, "epid": 10}, "w") as f:
-            json.dump({'a': 300}, f)
-        with wloc.open({"simid": 2, "epid": 20}, "w") as f:
-            json.dump({'a': 400}, f)
+        with wloc.open({"simid": 1, "epid": 10}, "w") as f: json.dump({'a': 100}, f)
+        with wloc.open({"simid": 1, "epid": 20}, "w") as f: json.dump({'a': 200}, f)
+        with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
+        with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
 
         loc = filoc_json(self.path_fmt)
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
-        self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]',
-                         json.dumps(p, sort_keys=True))
+        self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
 
         # change file
         time.sleep(0.1)  # ensures different timestamp
@@ -54,6 +49,44 @@ class TestFilocJson(unittest.TestCase):
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 333, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
+
+
+    def test_read_all(self):
+        wloc = FilocIO(self.path_fmt, writable=True)
+        with wloc.open({"simid": 1, "epid": 10}, "w") as f: json.dump({'a': 100}, f)
+        with wloc.open({"simid": 1, "epid": 20}, "w") as f: json.dump({'a': 200}, f)
+        with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
+        with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
+
+        loc = filoc_json(self.path_fmt)
+        p = loc.read_contents()
+        self.assertEqual(len(p), 4)
+        self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 200, "epid": 20, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}, {"a": 400, "epid": 20, "simid": 2}]', json.dumps(p, sort_keys=True))
+
+    def test_with_constraints_on_path_placeholders(self):
+        wloc = FilocIO(self.path_fmt, writable=True)
+        with wloc.open({"simid": 1, "epid": 10}, "w") as f: json.dump({'a': 100}, f)
+        with wloc.open({"simid": 1, "epid": 20}, "w") as f: json.dump({'a': 200}, f)
+        with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
+        with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
+
+        loc = filoc_json(self.path_fmt)
+        p = loc.read_contents({'epid': 10})
+        self.assertEqual(len(p), 2)
+        self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
+
+    def test_with_constraints_on_content_attributes(self):
+        wloc = FilocIO(self.path_fmt, writable=True)
+        with wloc.open({"simid": 1, "epid": 10}, "w") as f: json.dump({'a': 100}, f)
+        with wloc.open({"simid": 1, "epid": 20}, "w") as f: json.dump({'a': 200}, f)
+        with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
+        with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
+
+        loc = filoc_json(self.path_fmt)
+        p = loc.read_contents({'a': 300})
+        self.assertEqual(len(p), 1)
+        self.assertEqual('[{"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
+
 
     def test_read_contents_with_cache(self):
         print("write files")
@@ -121,6 +154,7 @@ class TestFilocJson(unittest.TestCase):
         self.assertEqual('{"a": 200}', json.dumps(c2, sort_keys=True))
         self.assertEqual('{"a": 300}', json.dumps(c3, sort_keys=True))
         self.assertEqual('{"a": 400}', json.dumps(c4, sort_keys=True))
+
 
 
 if __name__ == '__main__':

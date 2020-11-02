@@ -4,7 +4,7 @@ Internal utilities
 import json
 import copy
 import logging
-from typing import Dict, Any, List, Union, Mapping
+from typing import Dict, Any, Iterable, List, Set, Union, Mapping
 
 from orderedset import OrderedSet
 
@@ -12,7 +12,7 @@ from filoc.contract import PropsList
 
 log = logging.getLogger('filoc')
 
-_missing_key = object()
+_MISSING_KEY = object()
 
 
 # noinspection PyMissingOrEmptyDocstring
@@ -62,71 +62,113 @@ def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bo
 # ---------------------
 # Pivot Helpers
 # ---------------------
+
+Table = List[Dict[str, Any]]
+Row   = Dict[str, Any]
+
 # noinspection PyMissingOrEmptyDocstring
-def merge_tables(table_by_name : Dict[str, List[Mapping[str, Any]]], join_key_names : List[str], separator : str, join_level_name : str):
-    resulting_pivot = None
-    for table_name, table_values in table_by_name.items():
-        pi = _pivot(table_values, join_key_names, f'{table_name}{separator}')
-        if resulting_pivot is None:
-            resulting_pivot = pi
-            continue
-        else:
-            _merge_pivots_recursive(resulting_pivot, pi, join_key_names)
-
-    index_prefix = f"{join_level_name}{separator}"
-    return _unpivot(resulting_pivot, join_key_names, index_prefix)
-
-
-def _merge_pivots_recursive(pi1 : dict, pi2 : dict, remaining_key_names : List[str]):
-    if len(remaining_key_names) == 0:
-        pi1.update(pi2)
-    else:
-        cp1 = pi1.pop(_missing_key) if _missing_key in pi1 else dict()
-        cp2 = pi2.pop(_missing_key) if _missing_key in pi2 else dict()
-        all_keys = OrderedSet(pi1) | OrderedSet(pi2)
-
-        if len(all_keys) == 0:
-            _merge_pivots_recursive(cp1, cp2, remaining_key_names[1:])
-            pi1[_missing_key] = cp1
-        else:
-            for k in all_keys:
-                v1 = pi1[k] if k in pi1 else copy.deepcopy(cp1)
-                v2 = pi2[k] if k in pi2 else copy.deepcopy(cp2)
-                _merge_pivots_recursive(v1, v2, remaining_key_names[1:])
-                pi1[k] = v1
+def merge_tables(
+    table_by_name   : Mapping[str, Table], 
+    join_keys       : Iterable[str], 
+    separator       : str, 
+    join_level_name : str
+):
+    prefixed_join_keys = set([f'{join_level_name}{separator}{k}' for k in join_keys])
+        
+    resulting_table = None
+    for table_name, table in table_by_name.items():
+        table = _prefix_table(table, join_keys, table_name, separator, join_level_name)
+        resulting_table = table if resulting_table is None else _join(resulting_table, table, prefixed_join_keys)
+    return resulting_table
 
 
-def _pivot(table_values : List[Mapping[str, Any]], key_names : List[str], prefix : str):
-    result = dict()
-    for item in table_values:
-        path = []
-        curr_level = result
-        for key_name in key_names:
-            key = item.pop(key_name, _missing_key)
-            path.append(key)
-            if key not in curr_level:
-                curr_level[key] = dict()
-            curr_level = curr_level[key]
-
-        for (k, v) in item.items():
-            curr_level[prefix + k] = v
-
-    return result
-
-
-def _unpivot(pivot, key_names: List[str], index_prefix : str):
+def _prefix_table(
+    table          : Table, 
+    join_key_names : Set[str],
+    table_name     : str,
+    separator      : str,
+    join_level_name: str,
+):
     result = []
-    _unpivot_recursive(pivot, dict(), key_names, index_prefix, result)
+    for item in table:
+        result.append({  f'{join_level_name}{separator}{k}' if k in join_key_names else f'{table_name}{separator}{k}' : v  for k,v in item.items()  })
     return result
 
 
-def _unpivot_recursive(pivot_node: Mapping[str, Any], current_index: Mapping[str, Any], remaining_key_names: List[str], index_prefix : str, result):
-    if len(remaining_key_names) == 0:
-        current_index.update(pivot_node)
-        result.append(current_index)
+def _join(
+    table1    : Table, 
+    table2    : Table, 
+    join_keys : Set[str]
+):
+    # build index on the shortest list, to speed up
+    if len(table1) < len(table2):
+        table1, table2 = table2, table1
+
+    table2_index_cache = {}
+    result = []
+    for row1 in table1:
+        rows2 = _get_rows2(row1, table2, join_keys, table2_index_cache)
+        for row2 in rows2:
+            r = row1.copy()
+            r.update(row2)
+            result.append(r)
+    return result
+
+def _get_rows2(
+    row1      : Row, 
+    table2    : Table, 
+    join_keys : Set[str], 
+    table2_index_cache : Dict[List[str], dict]
+):
+    defined_keys1       = tuple(sorted(row1.keys() & join_keys))
+    defined_key_values1 = [row1.get(key, _MISSING_KEY) for key in defined_keys1]
+
+    if defined_keys1 not in table2_index_cache:
+        table2_index_cache[defined_keys1] = _build_index(defined_keys1, table2)
+    table2_index = table2_index_cache[defined_keys1]
+    return _get_index_matches_recursive(table2_index, defined_key_values1)
+
+
+def _build_index(keys : List[str], table : Table) -> dict:
+    index = {}
+    for row in table:
+        key_values = [row.get(key, _MISSING_KEY) for key in keys]
+        _put_to_index(index, row, key_values)
+    return index
+
+
+def _put_to_index(index : dict, v : Any, key_values : List[str]):
+    d_curr = index
+    for k in key_values[:-1]:
+        if k not in d_curr:
+            d_curr[k] = {}
+        d_curr = d_curr[k]
+
+    # last is a list
+    k = key_values[-1]
+    if k not in d_curr:
+        d_curr[k] = []
+    d_curr[k].append(v)
+
+
+def _get_index_matches_recursive(index, key_values):
+    key_value = key_values[0]
+
+    r1, r2 = None, None
+    if len(key_values) == 1:
+        if key_value    in index: r1 = index[key_value]
+        if _MISSING_KEY in index: r2 = index[_MISSING_KEY]
     else:
-        key_name = remaining_key_names[0]
-        for key, sub_pivot in pivot_node.items():
-            sub_index = current_index.copy()
-            sub_index[index_prefix + key_name] = key
-            _unpivot_recursive(sub_pivot, sub_index, remaining_key_names[1:], index_prefix, result)
+        next_keyvalues = key_values[1:]
+        if key_value    in index: r1 = _get_index_matches_recursive(index[key_value]   , next_keyvalues)
+        if _MISSING_KEY in index: r1 = _get_index_matches_recursive(index[_MISSING_KEY], next_keyvalues)
+    return _combine_list(r1, r2)
+            
+
+def _combine_list(l1, l2):
+        if l1:
+            if l2: return l1 + l2
+            else : return l1
+        else:
+            if l2: return l2
+            else : return []

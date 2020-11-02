@@ -5,7 +5,7 @@ from typing import Dict, Any
 import yaml
 from fsspec import AbstractFileSystem
 
-from filoc.contract import PropsList, BackendContract
+from filoc.contract import PropsList, BackendContract, Constraints
 from filoc.utils import filter_and_coerce_loaded_file_content, coerce_file_content_to_write
 
 
@@ -22,7 +22,7 @@ class YamlBackend(BackendContract):
         self.is_singleton = is_singleton
         self.encoding     = encoding
 
-    def read(self, fs: AbstractFileSystem, path: str, constraints: Dict[str, Any]) -> PropsList:
+    def read(self, fs: AbstractFileSystem, path: str, constraints: Constraints) -> PropsList:
         """(see BackendContract contract)"""
         with fs.open(path, encoding=self.encoding) as f:
             return filter_and_coerce_loaded_file_content(path, yaml.load(f), constraints, self.is_singleton)

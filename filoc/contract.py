@@ -71,7 +71,7 @@ class SingletonExpectedError(FrontendConversionError):
 class BackendContract(ABC):
     """The abstract class that filoc backends need to implement."""
 
-    def read(self, fs : AbstractFileSystem, path : str, constraints : Mapping[str, Any]) -> PropsList:
+    def read(self, fs : AbstractFileSystem, path : str, constraints : Constraints) -> PropsList:
         """Reads the data contained at ``path`` on the file system ``fs``, applies additional filters defined in ``constraints`` and convert the data to the filoc intermediate representation.
 
         Args:

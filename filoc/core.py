@@ -187,7 +187,6 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
     def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        self.filoc_io.render_path(constraints)  # validates, that pat_props points to a single file
         props_list = self._read_props_list(constraints)
         return self.frontend.read_content(props_list)
 
@@ -252,7 +251,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             # cache is not valid: read path directly!
 
             # props from reader
-            props_list = self._read_path(path, file_path_props)    # type: PropsList
+            props_list = self._read_path(path, constraints)    # type: PropsList
 
             # augment read props with additional external data
             for props in props_list:
