@@ -6,7 +6,7 @@ import unittest
 from pandas import DataFrame
 
 # noinspection DuplicatedCode
-from filoc import filoc_pandas, FilocIO
+from filoc import filoc_pandas_composite, filoc_pandas_single, FilocIO
 
 
 class TestMultiloc(unittest.TestCase):
@@ -15,8 +15,8 @@ class TestMultiloc(unittest.TestCase):
         self.test_dir     = tempfile.mkdtemp().replace('\\', '/')
         self.path_fmt_hyp = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
         self.path_fmt_res = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
-        self.hyp_loc      = filoc_pandas(self.path_fmt_hyp, writable=True)
-        self.res_loc      = filoc_pandas(self.path_fmt_res, writable=True)
+        self.hyp_loc      = filoc_pandas_single(self.path_fmt_hyp, writable=True)
+        self.res_loc      = filoc_pandas_single(self.path_fmt_res, writable=True)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -25,7 +25,7 @@ class TestMultiloc(unittest.TestCase):
         pass
 
     def test_write_and_read_contents_dataframe(self):
-        mloc = filoc_pandas({'hyp': self.hyp_loc, 'res': self.res_loc})
+        mloc = filoc_pandas_composite({'hyp': self.hyp_loc, 'res': self.res_loc})
 
         # ACT 1
         mloc.write_contents(DataFrame([

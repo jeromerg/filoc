@@ -5,7 +5,7 @@ from typing import Any, List
 import unittest
 
 # noinspection DuplicatedCode
-from filoc import filoc_json, FilocIO
+from filoc import filoc_json_single, filoc_json_composite, FilocIO
 
 
 class TestMultiloc_TwoLevels(unittest.TestCase):
@@ -16,9 +16,9 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_read(self):
-        node_loc = filoc_json(f'{self.test_dir}/{{node_id:d}}/node.json', writable=True)
-        leaf_loc = filoc_json(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf.json', writable=True)
-        sut_loc = filoc_json({
+        node_loc = filoc_json_single(f'{self.test_dir}/{{node_id:d}}/node.json', writable=True)
+        leaf_loc = filoc_json_single(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf.json', writable=True)
+        sut_loc = filoc_json_composite({
             'node' : node_loc,
             'leaf' : leaf_loc,
         })
@@ -51,9 +51,9 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
         )
 
     def test_2filocs_with_reversed_key_order(self):
-        leaf1_loc = filoc_json(f'{self.test_dir}/{{leaf_id:d}}/{{node_id:d}}/leaf1.json', writable=True)
-        leaf2_loc = filoc_json(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf2.json', writable=True)
-        sut_loc = filoc_json({ 'leaf1' : leaf1_loc, 'leaf2' : leaf2_loc })
+        leaf1_loc = filoc_json_single(f'{self.test_dir}/{{leaf_id:d}}/{{node_id:d}}/leaf1.json', writable=True)
+        leaf2_loc = filoc_json_single(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf2.json', writable=True)
+        sut_loc = filoc_json_composite({ 'leaf1' : leaf1_loc, 'leaf2' : leaf2_loc })
 
         leaf1_loc.write_content( {'node_id': 1, 'leaf_id': 1, 'value' : 0.1})
         leaf1_loc.write_content( {'node_id': 1, 'leaf_id': 2, 'value' : 0.2})
@@ -85,9 +85,9 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
         )
 
     def test_2filocs_with_unrelated_placeholder_keys(self):
-        leaf1_loc = filoc_json(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
-        leaf2_loc = filoc_json(f'{self.test_dir}/2/{{C}}/{{D}}/leaf2.json', writable=True)
-        sut_loc = filoc_json({ 'AB' : leaf1_loc, 'CD' : leaf2_loc })
+        leaf1_loc = filoc_json_single(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
+        leaf2_loc = filoc_json_single(f'{self.test_dir}/2/{{C}}/{{D}}/leaf2.json', writable=True)
+        sut_loc = filoc_json_composite({ 'AB' : leaf1_loc, 'CD' : leaf2_loc })
 
         leaf1_loc.write_content( {'A': 1  , 'B':   10, 'V' : 0.1})
         leaf1_loc.write_content( {'A': 1  , 'B':   20, 'V' : 0.2})
@@ -105,9 +105,9 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
         )
 
     def test_2filocs_filter_on_first_locpath(self):
-        leaf1_loc = filoc_json(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf1.json', writable=True)
-        leaf2_loc = filoc_json(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf2.json', writable=True)
-        sut_loc = filoc_json({ 'leaf1' : leaf1_loc, 'leaf2' : leaf2_loc })
+        leaf1_loc = filoc_json_single(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf1.json', writable=True)
+        leaf2_loc = filoc_json_single(f'{self.test_dir}/{{node_id:d}}/{{leaf_id:d}}/leaf2.json', writable=True)
+        sut_loc = filoc_json_composite({ 'leaf1' : leaf1_loc, 'leaf2' : leaf2_loc })
 
         leaf1_loc.write_content( {'node_id': 1, 'leaf_id': 1, 'value' : 0.1})
         leaf1_loc.write_content( {'node_id': 1, 'leaf_id': 2, 'value' : 0.2})

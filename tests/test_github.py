@@ -7,7 +7,6 @@ import unittest
 from pathlib import Path
 from filoc import filoc
 from pandas import DataFrame
-from filoc import filoc_json, FilocIO
 
 
 def touch_file(file_path):

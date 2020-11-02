@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 # noinspection DuplicatedCode
-from filoc import filoc_json, FilocIO
+from filoc import filoc_json_single, filoc_json_composite, FilocIO
 
 
 class TestMultiloc(unittest.TestCase):
@@ -14,10 +14,10 @@ class TestMultiloc(unittest.TestCase):
         self.path_fmt_simid_config = self.test_dir + r'/somewhere1/simid={simid:d}/config.json'
         self.path_fmt_hyp          = self.test_dir + r'/somewhere1/simid={simid:d}/epid={epid:d}/hyperparameters.json'
         self.path_fmt_res          = self.test_dir + r'/somewhere1/epid={epid:d}/simid={simid:d}/result.json'
-        self.conf_wloc             = filoc_json(self.path_fmt_simid_config, writable=True )
-        self.conf_loc              = filoc_json(self.path_fmt_simid_config, writable=False)
-        self.hyp_loc               = filoc_json(self.path_fmt_hyp         , writable=True )
-        self.res_loc               = filoc_json(self.path_fmt_res         , writable=True )
+        self.conf_wloc             = filoc_json_single(self.path_fmt_simid_config, writable=True )
+        self.conf_loc              = filoc_json_single(self.path_fmt_simid_config, writable=False)
+        self.hyp_loc               = filoc_json_single(self.path_fmt_hyp         , writable=True )
+        self.res_loc               = filoc_json_single(self.path_fmt_res         , writable=True )
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -32,7 +32,7 @@ class TestMultiloc(unittest.TestCase):
             {"simid": 2, "confA" : "R"},
         ])
 
-        mloc = filoc_json({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
+        mloc = filoc_json_composite({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
         mloc.write_contents([
             {"index.simid": 1, "index.epid": 10, "hyp.a": 100, "res.b": 1000},
             {"index.simid": 1, "index.epid": 20, "hyp.a": 200, "res.b": 2000},
