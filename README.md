@@ -25,7 +25,7 @@ This is the key feature of filoc, which enables you to choose the best path stru
 
 [Machine Learning Workflow Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
  
-[Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
+[Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_covid_github.html)
 
 ## Basic example
 

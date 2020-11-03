@@ -36,7 +36,8 @@ class _RunningCache(NamedTuple):
 
 
 # TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
-
+# TODO Feature: optimistic locking for long editing (use timestamp_col)
+# TODO Feature: Backup on write if file already exists (possibilit, use locpath with $version and $timestamp placeholder)
 
 # ---------
 # FilocSingle
