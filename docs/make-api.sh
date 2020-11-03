@@ -1,1 +1,1 @@
-sphinx-apidoc -o "source/" "../filoc"
+sphinx-apidoc -f -o "source/" "../filoc"

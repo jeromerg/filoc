@@ -11,6 +11,8 @@ Welcome to filoc's documentation!
    :caption: Contents:
    
    filoc
+   filoc.backends
+   filoc.frontends
    modules
 
 

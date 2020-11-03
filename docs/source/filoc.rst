@@ -1,40 +1,17 @@
 filoc package
 =============
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   filoc.backends
+   filoc.frontends
+
 Submodules
 ----------
-
-filoc.backend\_csv module
--------------------------
-
-.. automodule:: filoc.backend_csv
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-filoc.backend\_json module
---------------------------
-
-.. automodule:: filoc.backend_json
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-filoc.backend\_pickle module
-----------------------------
-
-.. automodule:: filoc.backend_pickle
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-filoc.backend\_yaml module
---------------------------
-
-.. automodule:: filoc.backend_yaml
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 filoc.contract module
 ---------------------
@@ -52,26 +29,18 @@ filoc.core module
    :undoc-members:
    :show-inheritance:
 
+filoc.factories module
+----------------------
+
+.. automodule:: filoc.factories
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 filoc.filoc\_io module
 ----------------------
 
 .. automodule:: filoc.filoc_io
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-filoc.frontend\_json module
----------------------------
-
-.. automodule:: filoc.frontend_json
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-filoc.frontend\_pandas module
------------------------------
-
-.. automodule:: filoc.frontend_pandas
    :members:
    :undoc-members:
    :show-inheritance:

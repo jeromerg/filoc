@@ -23,10 +23,10 @@ TContents            = TypeVar('TContents')
 """Generic type of objects returned by ``Filoc.get_contents(...)`` and expected by ``Filoc.write_contents(...)``. 
 For example, in the ``'json'`` frontend, TContents is equal to `List[Mapping[str,Any]]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.DataFrame`` """
 
-PresetFrontends      = Literal['json', 'pandas']
+BuiltinFrontends      = Literal['json', 'pandas']
 """Shortcuts used to designate filoc preset frontends"""
 
-PresetBackends       = Literal['json', 'yaml', 'csv', 'pickle']
+BuiltinBackends       = Literal['json', 'yaml', 'csv', 'pickle']
 """Shortcut used to designate filoc preset backends"""
 
 Constraint           = Any
