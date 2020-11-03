@@ -8,7 +8,7 @@ custom frontends and backends need to implement.
 # -------------
 import logging
 from abc import ABC
-from typing import TypeVar, Literal, Any, List, Generic, Optional, Mapping, Dict
+from typing import TypeVar, Literal, Any, List, Generic, Optional, Mapping, Dict, Collection
 
 from fsspec import AbstractFileSystem
 
@@ -42,6 +42,9 @@ ReadOnlyProps        = Mapping[str, PropValue]
 
 Props                = Dict[str, PropValue]
 """filoc intermediate data representation of a single data 'row'"""
+
+ReadOnlyPropsList    = Collection[ReadOnlyProps]
+"""filoc intermediate data representation between the backend files and the frontend TContent and TContents objects"""
 
 PropsList            = List[Props]
 """filoc intermediate data representation between the backend files and the frontend TContent and TContents objects"""
@@ -126,7 +129,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError("Abstract")
 
-    def write_content(self, content : TContent) -> PropsList:
+    def write_content(self, content : TContent) -> ReadOnlyPropsList:
         """ Converts the frontend ``TContent`` object into the filoc intermediate representation.
 
         Args:
@@ -137,7 +140,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError("Abstract")
 
-    def write_contents(self, contents : TContents) -> PropsList:
+    def write_contents(self, contents : TContents) -> ReadOnlyPropsList:
         """ Converts the frontend ``TContents`` object into the filoc intermediate representation.
 
         Args:

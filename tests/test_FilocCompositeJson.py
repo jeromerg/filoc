@@ -7,6 +7,7 @@ import unittest
 from filoc import filoc_json_single, filoc_json_composite, FilocIO
 
 
+# noinspection PyMissingOrEmptyDocstring
 class TestMultiloc(unittest.TestCase):
     def setUp(self):
         self.maxDiff               = None

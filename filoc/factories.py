@@ -1,16 +1,16 @@
 """
 This module contains the filoc factories ``filoc(...)``, ``filoc_json_single(...)``, ``filoc_pandas_single(...)``, ``filoc_json_composite(...)``, ``filoc_pandas_composite(...)``.
 """
+from typing import Any, Dict, List, Mapping, Optional, Union
+
 from fsspec.spec import AbstractFileSystem
-
-from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from filoc.core import FilocSingle, FilocComposite
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+from pandas.core.series import Series
+
 from filoc.contract import BuiltinFrontends, Filoc, BackendContract, FrontendContract, BuiltinBackends
+from filoc.core import FilocSingle, FilocComposite
 
-
-_default_frontend        = 'pandas'  
+_default_frontend        = 'pandas'
 _default_backend         = 'json'
 _default_singleton       = True
 _default_encoding        = None
@@ -189,7 +189,7 @@ def filoc_json_single(
         fs              : Optional[AbstractFileSystem]            = None,
 ) -> FilocSingle[Dict[str, Any], List[Dict[str, Any]]]:
     """ Same as filoc(), but with typed return value to improve IDE support """
-    return filoc(
+    loc = filoc(
         locpath         = locpath              ,
         frontend        = _get_frontend('json'),
         backend         = backend              ,
@@ -202,6 +202,8 @@ def filoc_json_single(
         join_separator  = join_separator       ,
         fs              = fs                   ,
     )
+    assert isinstance(loc, FilocSingle)
+    return loc
 
 
 def filoc_json_composite(
@@ -217,7 +219,7 @@ def filoc_json_composite(
         fs              : Optional[AbstractFileSystem]            = None,
 ) -> FilocComposite[Dict[str, Any], List[Dict[str, Any]]]:
     """ Same as filoc(), but with typed return value to improve IDE support """
-    return filoc(
+    loc = filoc(
         locpath         = locpath              ,
         frontend        = _get_frontend('json'),
         backend         = backend              ,
@@ -230,6 +232,8 @@ def filoc_json_composite(
         join_separator  = join_separator       ,
         fs              = fs                   ,
     )
+    assert isinstance(loc, FilocComposite)
+    return loc
 
 
 def filoc_pandas_single(
@@ -245,7 +249,7 @@ def filoc_pandas_single(
         fs              : Optional[AbstractFileSystem]            = None,
 ) -> FilocSingle[Series, DataFrame]:
     """ Same as filoc(), but with typed return value to improve IDE support """
-    return filoc(
+    loc = filoc(
         locpath         = locpath                ,
         frontend        = _get_frontend('pandas'),
         backend         = backend                ,
@@ -258,6 +262,8 @@ def filoc_pandas_single(
         join_separator  = join_separator         ,
         fs              = fs                     ,
     )
+    assert isinstance(loc, FilocSingle)
+    return loc
 
 
 def filoc_pandas_composite(
@@ -273,7 +279,7 @@ def filoc_pandas_composite(
         fs              : Optional[AbstractFileSystem]            = None,
 ) -> FilocComposite[Series, DataFrame]:
     """ Same as filoc(), but with typed return value to improve IDE support """
-    return filoc(
+    loc = filoc(
         locpath         = locpath                ,
         frontend        = _get_frontend('pandas'),
         backend         = backend                ,
@@ -286,3 +292,5 @@ def filoc_pandas_composite(
         join_separator  = join_separator         ,
         fs              = fs                     ,
     )
+    assert isinstance(loc, FilocComposite)
+    return loc

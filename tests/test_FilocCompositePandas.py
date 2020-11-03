@@ -9,6 +9,7 @@ from pandas import DataFrame
 from filoc import filoc_pandas_composite, filoc_pandas_single, FilocIO
 
 
+# noinspection PyMissingOrEmptyDocstring
 class TestMultiloc(unittest.TestCase):
     def setUp(self):
         self.maxDiff      = None

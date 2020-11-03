@@ -6,6 +6,7 @@ import unittest
 from pandas import DataFrame
 from filoc import filoc
 
+# noinspection PyMissingOrEmptyDocstring
 class TestBackendYaml(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None

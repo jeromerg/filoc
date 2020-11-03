@@ -8,6 +8,7 @@ import unittest
 from filoc import filoc_json_single, filoc_json_composite, FilocIO
 
 
+# noinspection PyMissingOrEmptyDocstring
 class TestMultiloc_TwoLevels(unittest.TestCase):
     def setUp(self):
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')

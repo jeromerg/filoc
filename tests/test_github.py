@@ -1,19 +1,20 @@
-import json
+""" github protocol test """
 import os
 import shutil
 import tempfile
-import time
 import unittest
 from pathlib import Path
+
 from filoc import filoc
-from pandas import DataFrame
 
 
+# noinspection PyMissingOrEmptyDocstring
 def touch_file(file_path):
     os.makedirs(os.path.dirname(file_path))
     Path(file_path).touch()
 
 
+# noinspection PyMissingOrEmptyDocstring,PyPep8Naming
 class Test_fs_github(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None

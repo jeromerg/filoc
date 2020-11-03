@@ -6,11 +6,12 @@ import unittest
 from pandas import DataFrame
 from filoc import filoc
 
+# noinspection PyMissingOrEmptyDocstring
 class TestBackendJson(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')
-        self.file = self.test_dir + r'/myfile.yaml'
+        self.file = self.test_dir + r'/myfile.json'
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -38,6 +39,17 @@ class TestBackendJson(unittest.TestCase):
 
         self.assertEqual(json.dumps(content, sort_keys=True),
                          json.dumps(data, sort_keys=True))
+
+    def test_read_content_with_more_than_one_row(self):
+        with open(self.file, mode='w') as f:
+            f.write("!$%& not a json file")
+
+        loc = filoc(self.file, backend='json', singleton=True)
+        try:
+            p = loc.read_content()
+            raise AssertionError("previous call expected to raise an error")
+        except ValueError:
+            pass
 
 
 if __name__ == '__main__':
