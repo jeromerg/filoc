@@ -259,7 +259,7 @@ In this example, we have set the finance filoc *writable*, so we can edit the da
 df.loc[ (df['index.year'] == 2019) & (df['index.company'] == 'OVH'), 'finance.revenue'] = 0
 ```
 
-You can check that the updated file content:
+We check the updated file content:
 
 ```
 $> cat /data/France/OVH/2019_revenue.json
