@@ -49,7 +49,7 @@ pip install filoc
 
 ### Import
 
-In most scenario, you only need to import the `filoc(...)` factory function:
+In most scenarios, you only need to import the `filoc(...)` factory function:
 ```python
 from filoc import filoc
 ```  
