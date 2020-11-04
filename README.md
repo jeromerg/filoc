@@ -23,9 +23,9 @@ This is the key feature of filoc, which enables you to choose the best path stru
 
 ## Use Cases (Jupyter Notebook)
 
-[Machine Learning Workflow Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_ml.html)
+[Machine Learning Workflow Example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/machine_learning/example_ml.html)
  
-[Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_covid_github.html)
+[Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/covid_github/example_covid_github.html)
 
 ## Basic example
 
@@ -176,7 +176,7 @@ It enables filoc to work with the following file systems:
 | `smb://`                       | [SMB]                                | smbprotocol or smbprotocol\[kerberos]              |
 | `jupyter://` or `jlab://`      | [jupyter]                            | requests                                           |
 
-[Here is a example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/example_covid_github.html), how to use *github://* to read the covid statistics from the Johns Hopkins University github repository.
+[Here is a example](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/covid_github/example_covid_github.html), how to use *github://* to read the covid statistics from the Johns Hopkins University github repository.
 
 ## Composite
 

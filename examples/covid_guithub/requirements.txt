@@ -11,5 +11,9 @@ flake8
 pytest
 setuptools
 
-# unit test testing github protocol
 requests
+
+matplotlib
+seaborn
+ipykernel
+dash

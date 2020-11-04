@@ -8,9 +8,14 @@ custom frontends and backends need to implement.
 # -------------
 import logging
 from abc import ABC
-from typing import TypeVar, Literal, Any, List, Generic, Optional, Mapping, Dict
-
+from typing import TypeVar, Any, List, Generic, Optional, Mapping, Dict
 from fsspec import AbstractFileSystem
+
+# Literal is python 3.8 feature, but filoc works from python 3.6 upward
+try:
+    from typing import Literal
+except ImportError:
+    Literal = None
 
 # set logging level to WARN. User can override the level to info, to get more infos
 logging.getLogger('filoc').setLevel(logging.WARN)
@@ -23,10 +28,10 @@ TContents            = TypeVar('TContents')
 """Generic type of objects returned by ``Filoc.get_contents(...)`` and expected by ``Filoc.write_contents(...)``. 
 For example, in the ``'json'`` frontend, TContents is equal to `List[Mapping[str,Any]]``, and in the ``'pandas'`` frontend, TContent is equal to ``pandas.DataFrame`` """
 
-BuiltinFrontends      = Literal['json', 'pandas']
+BuiltinFrontends      = Literal['json', 'pandas'] if Literal else str
 """Shortcuts used to designate filoc preset frontends"""
 
-BuiltinBackends       = Literal['json', 'yaml', 'csv', 'pickle']
+BuiltinBackends       = Literal['json', 'yaml', 'csv', 'pickle'] if Literal else str
 """Shortcut used to designate filoc preset backends"""
 
 Constraint           = Any

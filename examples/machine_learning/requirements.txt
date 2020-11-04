@@ -13,3 +13,14 @@ setuptools
 
 # unit test testing github protocol
 requests
+
+sklearn
+keras
+tensorflow 
+torch
+torchvision
+
+matplotlib
+seaborn
+dash
+ipykernel
