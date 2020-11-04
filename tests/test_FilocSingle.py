@@ -1,3 +1,4 @@
+""" Test for json frontend """
 import json
 import os
 import shutil
@@ -9,13 +10,18 @@ from pathlib import Path
 from filoc import filoc_json_single, FilocIO
 
 
+# noinspection PyMissingOrEmptyDocstring
+from filoc.contract import SingletonExpectedError
+
+
 def touch_file(file_path):
     os.makedirs(os.path.dirname(file_path))
     Path(file_path).touch()
 
 
 # noinspection DuplicatedCode
-class TestFilocJson(unittest.TestCase):
+# noinspection PyMissingOrEmptyDocstring
+class TestFilocSingle(unittest.TestCase):
     """
     TODO: 
     - Test cache behavior on delete of files (should currently fail --> TODO DEV Feature)    
@@ -49,7 +55,6 @@ class TestFilocJson(unittest.TestCase):
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 333, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
-
 
     def test_read_all(self):
         wloc = FilocIO(self.path_fmt, writable=True)
@@ -86,7 +91,6 @@ class TestFilocJson(unittest.TestCase):
         p = loc.read_contents({'a': 300})
         self.assertEqual(len(p), 1)
         self.assertEqual('[{"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
-
 
     def test_read_contents_with_cache(self):
         print("write files")
@@ -154,7 +158,6 @@ class TestFilocJson(unittest.TestCase):
         self.assertEqual('{"a": 200}', json.dumps(c2, sort_keys=True))
         self.assertEqual('{"a": 300}', json.dumps(c3, sort_keys=True))
         self.assertEqual('{"a": 400}', json.dumps(c4, sort_keys=True))
-
 
 
 if __name__ == '__main__':

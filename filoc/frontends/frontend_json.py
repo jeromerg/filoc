@@ -1,6 +1,9 @@
 """ Contains the default JSON frontend implementation """
 import logging
-from filoc.contract import SingletonExpectedError, TContents, PropsList, TContent, FrontendContract
+from collections import Mapping, Collection
+
+from filoc.contract import SingletonExpectedError, TContents, PropsList, TContent, FrontendContract, \
+    FrontendConversionError, ReadOnlyPropsList
 
 log = logging.getLogger('filoc')
 
@@ -21,10 +24,16 @@ class JsonFrontend(FrontendContract):
         """(see FrontendContract contract)"""
         return props_list
 
-    def write_content(self, content: TContent) -> PropsList:
+    def write_content(self, content: TContent) -> ReadOnlyPropsList:
         """(see FrontendContract contract)"""
-        return [content]
+        if isinstance(content, Mapping):
+            return [content]
+        else:
+            raise FrontendConversionError(f'Expected instance of Mapping, got {type(content).__name__}')
 
-    def write_contents(self, contents: TContents) -> PropsList:
+    def write_contents(self, contents: TContents) -> ReadOnlyPropsList:
         """(see FrontendContract contract)"""
-        return contents
+        if isinstance(contents, Collection):
+            return contents
+        else:
+            raise FrontendConversionError(f'Expected instance of Collection, got {type(contents).__name__}')

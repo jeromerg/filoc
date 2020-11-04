@@ -2,11 +2,8 @@
 Internal utilities
 """
 import json
-import copy
 import logging
-from typing import Dict, Any, Iterable, List, Set, Union, Mapping
-
-from orderedset import OrderedSet
+from typing import Dict, Any, Iterable, List, Set, Union, Mapping, Tuple
 
 from filoc.contract import PropsList
 
@@ -66,6 +63,7 @@ def coerce_file_content_to_write(path, props_list : PropsList, is_singleton : bo
 Table = List[Dict[str, Any]]
 Row   = Dict[str, Any]
 
+
 # noinspection PyMissingOrEmptyDocstring
 def merge_tables(
     table_by_name   : Mapping[str, Table], 
@@ -84,14 +82,14 @@ def merge_tables(
 
 def _prefix_table(
     table          : Table, 
-    join_key_names : Set[str],
+    join_key_names : Iterable[str],
     table_name     : str,
     separator      : str,
     join_level_name: str,
 ):
     result = []
     for item in table:
-        result.append({  f'{join_level_name}{separator}{k}' if k in join_key_names else f'{table_name}{separator}{k}' : v  for k,v in item.items()  })
+        result.append({  f'{join_level_name}{separator}{k}' if k in join_key_names else f'{table_name}{separator}{k}' : v  for k, v in item.items()  })
     return result
 
 
@@ -114,11 +112,12 @@ def _join(
             result.append(r)
     return result
 
+
 def _get_rows2(
     row1      : Row, 
     table2    : Table, 
     join_keys : Set[str], 
-    table2_index_cache : Dict[List[str], dict]
+    table2_index_cache : Dict[Tuple[str], dict]
 ):
     defined_keys1       = tuple(sorted(row1.keys() & join_keys))
     defined_key_values1 = [row1.get(key, _MISSING_KEY) for key in defined_keys1]
@@ -129,7 +128,7 @@ def _get_rows2(
     return _get_index_matches_recursive(table2_index, defined_key_values1)
 
 
-def _build_index(keys : List[str], table : Table) -> dict:
+def _build_index(keys : Iterable[str], table : Table) -> dict:
     index = {}
     for row in table:
         key_values = [row.get(key, _MISSING_KEY) for key in keys]
@@ -166,9 +165,9 @@ def _get_index_matches_recursive(index, key_values):
             
 
 def _combine_list(l1, l2):
-        if l1:
-            if l2: return l1 + l2
-            else : return l1
-        else:
-            if l2: return l2
-            else : return []
+    if l1:
+        if l2: return l1 + l2
+        else : return l1
+    else:
+        if l2: return l2
+        else : return []

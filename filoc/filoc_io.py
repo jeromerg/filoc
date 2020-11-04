@@ -116,7 +116,7 @@ class FilocIO:
         else:
             open_file = OpenFile(fs, some_valid_path)
 
-        # now build the normalized locpath, by replacing erstz stirng by the original placeholder strings
+        # now build the normalized locpath, by replacing ersatz string by the original placeholder strings
         self.locpath = open_file.path
         for elt, ersatz in path_elts_and_ersatz:
             if ersatz:
@@ -300,11 +300,3 @@ class FilocIO:
             else:
                 raise ValueError(f'path is neither a direction nor a file: "{path}"')
         log.info(f'{dry_run_log_prefix}Deleted {len(path_to_delete)} files with path_props "{constraints}"')
-
-    def __eq__(self, other):
-        if other is not self:
-            return False
-        return self.locpath == other.locpath
-
-    def __hash__(self):
-        return self.locpath.__hash__()

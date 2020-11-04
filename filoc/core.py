@@ -17,7 +17,7 @@ from frozendict import frozendict
 from fsspec.spec import AbstractFileSystem
 
 from filoc.contract import TContent, TContents, Constraints, Props, PropsList, Filoc, \
-    FrontendContract, BackendContract, ReadOnlyProps, Constraint
+    FrontendContract, BackendContract, ReadOnlyProps, Constraint, ReadOnlyPropsList
 from .filoc_io import FilocIO, mix_dicts_and_coerce
 from .utils import merge_tables
 
@@ -37,7 +37,7 @@ class _RunningCache(NamedTuple):
 
 # TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
 # TODO Feature: optimistic locking for long editing (use timestamp_col)
-# TODO Feature: Backup on write if file already exists (possibilit, use locpath with $version and $timestamp placeholder)
+# TODO Feature: Backup on write if file already exists (think of possibility to use locpath with $version and $timestamp placeholder)
 
 # ---------
 # FilocSingle
@@ -287,7 +287,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         props_list = self.frontend.write_contents(contents)
         self._write_props_list(props_list, dry_run=dry_run)
 
-    def _write_props_list(self, props_list : PropsList, dry_run=False):
+    def _write_props_list(self, props_list : ReadOnlyPropsList, dry_run=False):
         if not self.filoc_io.writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
@@ -315,7 +315,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 self.backend.write(self.filoc_io.fs, path, other_props_list)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
-    def _split_keyvalues(self, keyvalues : Props) -> Tuple[Props, Props, datetime]:
+    def _split_keyvalues(self, keyvalues : ReadOnlyProps) -> Tuple[Props, Props, datetime]:
         path_props  = {}
         timestamp   = None
         other_props = dict()
@@ -407,7 +407,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         props_list = self.frontend.write_contents(contents)
         self._write_props_list(props_list, dry_run=dry_run)
 
-    def _write_props_list(self, props_list : PropsList, dry_run=False):
+    def _write_props_list(self, props_list : ReadOnlyPropsList, dry_run=False):
         # prepare empty props_list by filoc_name
         props_list_by_filoc_name = {}
         props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
@@ -416,7 +416,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
                 props_list_by_filoc_name[filoc_name] = [ dict() for _ in range(len(props_list)) ]
             else:
                 log.info(f'write operation skipped for "{filoc_name}" readonly Filoc')
-        
+
         # then fill
         split_cache = {}
         for row_id, props in enumerate(props_list):

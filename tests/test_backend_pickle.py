@@ -6,11 +6,12 @@ import unittest
 from pandas import DataFrame
 from filoc import filoc
 
+# noinspection PyMissingOrEmptyDocstring
 class TestBackendPickle(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.test_dir = tempfile.mkdtemp().replace('\\', '/')
-        self.file = self.test_dir + r'/myfile.yaml'
+        self.file = self.test_dir + r'/myfile.pickle'
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)

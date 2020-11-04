@@ -15,6 +15,7 @@ def touch_file(file_path):
 
 
 # noinspection DuplicatedCode
+# noinspection PyMissingOrEmptyDocstring
 class TestFilocIO_format(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
