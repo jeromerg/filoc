@@ -312,7 +312,7 @@ Filoc has two builtin frontends:
 | 1           | loc.read_content()  | loc.write_content()  | Dict[str, Any]       |
 | *           | loc.read_contents() | loc.write_contents() | List[Dict[str, Any]] |
 
-## Custom frontends
+### Custom frontends
 
 You can work with custom frontend objects, by passing a custom instance of the `FrontendContract` contract.
 
