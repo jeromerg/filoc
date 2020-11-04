@@ -1,15 +1,21 @@
+# requirements file used by mybinder.org to execute the examples
+dash
+flake8
 frozendict
 fsspec
-orderedset
+ipykernel
+keras
+matplotlib
 numpy
+orderedset
 pandas
 parse
-pyyaml
-
-# build and test
-flake8
 pytest
-setuptools
-
-# unit test testing github protocol
+pyyaml
 requests
+seaborn
+setuptools
+sklearn
+tensorflow 
+torch
+torchvision
