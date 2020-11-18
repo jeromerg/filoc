@@ -78,12 +78,13 @@ class SingletonExpectedError(FrontendConversionError):
 class BackendContract(ABC):
     """The abstract class that filoc backends need to implement."""
 
-    def read(self, fs : AbstractFileSystem, path : str, constraints : Constraints) -> PropsList:
+    def read(self, fs: AbstractFileSystem, path: str, path_props : Props, constraints: Constraints) -> PropsList:
         """Reads the data contained at ``path`` on the file system ``fs``, applies additional filters defined in ``constraints`` and convert the data to the filoc intermediate representation.
 
         Args:
             fs: File system implementation (see the `fsspec <https://github.com/intake/filesystem_spec/>`_ library)
-            path: The path at which the data must be loaded from. It is a concrete form of the filoc ``locpath``. 
+            path: The path at which the data must be loaded from. It is a concrete form of the filoc ``locpath``.
+            path_props: the key-values extracted from the path
             constraints: All constraints provided by the user to take into account.
 
         Returns:

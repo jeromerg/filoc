@@ -6,7 +6,7 @@ from typing import Dict, Any
 from fsspec import AbstractFileSystem
 from orderedset import OrderedSet
 
-from filoc.contract import PropsList, BackendContract, Constraints
+from filoc.contract import PropsList, BackendContract, Constraints, Props
 from filoc.utils import filter_and_coerce_loaded_file_content
 
 
@@ -26,12 +26,12 @@ class CsvBackend(BackendContract):
         super().__init__()
         self.encoding = encoding
 
-    def read(self, fs: AbstractFileSystem, path: str, constraints: Constraints) -> PropsList:
-        """(see BackendContract contract)"""
+    def read(self, fs: AbstractFileSystem, path: str, path_props : Props, constraints: Constraints) -> PropsList:
+        """(see BackendContract contract) """
         with fs.open(path, 'r', encoding=self.encoding) as f:
             reader = DictReader(f)
             props_list = [dict(row) for row in reader]
-            return filter_and_coerce_loaded_file_content(path, props_list, constraints, False)
+            return filter_and_coerce_loaded_file_content(path, props_list, path_props, constraints, False)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         """(see BackendContract contract)"""

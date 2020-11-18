@@ -248,7 +248,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             # cache is not valid: read path directly!
 
             # props from reader
-            props_list = self._read_path(path, constraints)    # type: PropsList
+            props_list = self._read_path(path, file_path_props, constraints)    # type: PropsList
 
             # augment read props with additional external data
             for props in props_list:
@@ -328,9 +328,9 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
                 other_props[k] = v
         return path_props, other_props, timestamp
 
-    def _read_path(self, path : str, constraints : Constraints):
+    def _read_path(self, path : str, path_props : Props, constraints : Constraints):
         log.info(f'Reading content for {path}')
-        content = self.backend.read(self.filoc_io.fs, path, constraints)
+        content = self.backend.read(self.filoc_io.fs, path, path_props, constraints)
         log.info(f'Read content for {path}')
         return content
 

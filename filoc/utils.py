@@ -13,7 +13,7 @@ _MISSING_KEY = object()
 
 
 # noinspection PyMissingOrEmptyDocstring
-def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_singleton):
+def filter_and_coerce_loaded_file_content(path, file_content, path_props, constraints, is_singleton):
     # validate file_content and coerce to list
     if is_singleton:
         if not isinstance(file_content, dict):
@@ -29,6 +29,8 @@ def filter_and_coerce_loaded_file_content(path, file_content, constraints, is_si
     for row in unfiltered_result:
         keep = True
         for constraint_key, constraint_value in constraints.items():
+            if constraint_key in path_props:
+                continue  # constraint is already fulfilled by the values of the path placeholders
             if constraint_key not in row:
                 continue  # constraint does not apply to this row
             if row[constraint_key] != constraint_value:
