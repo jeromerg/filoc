@@ -102,7 +102,41 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, '{"1": {"10": {"100": {"1000": {"AB.V": 0.1, "CD.V": 1.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.1, "CD.V": 2.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "2000"}}}, "20": {"100": {"1000": {"AB.V": 0.2, "CD.V": 1.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.2, "CD.V": 2.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "2000"}}}}}'
+        self.assertEquals(result_tree_txt, '{"1": {"10": {"100": {"1000": {"AB.V": 0.1, "CD.V": 1.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.1, "CD.V": 2.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "2000"}}}, "20": {"100": {"1000": {"AB.V": 0.2, "CD.V": 1.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.2, "CD.V": 2.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "2000"}}}}}')
+
+    def test_2filocs_second_is_empty(self):
+        leaf1_loc = filoc_json_single(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
+        leaf2_loc = filoc_json_single(f'{self.test_dir}/2/{{C}}/{{D}}/leaf2.json', writable=True)
+        sut_loc = filoc_json_composite({ 'AB' : leaf1_loc, 'CD' : leaf2_loc })
+
+        leaf2_loc.write_content( {'C': 100, 'D': 1000, 'V' : 1.0})
+        leaf2_loc.write_content( {'C': 100, 'D': 2000, 'V' : 2.0})
+
+        result = sut_loc.read_contents()
+
+        result_tree = pivot(result, "index.C", "index.D")
+        result_tree_txt = json.dumps(result_tree, sort_keys=True)
+        print(result_tree_txt)
+
+        self.maxDiff = 2000
+        self.assertEquals(result_tree_txt, '{"100": {"1000": {"CD.V": 1.0, "index.C": "100", "index.D": "1000"}, "2000": {"CD.V": 2.0, "index.C": "100", "index.D": "2000"}}}')
+
+    def test_2filocs_first_is_empty(self):
+        leaf1_loc = filoc_json_single(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
+        leaf2_loc = filoc_json_single(f'{self.test_dir}/2/{{C}}/{{D}}/leaf2.json', writable=True)
+        sut_loc = filoc_json_composite({ 'AB' : leaf1_loc, 'CD' : leaf2_loc })
+
+        leaf1_loc.write_content( {'A': 1  , 'B':   10, 'V' : 0.1})
+        leaf1_loc.write_content( {'A': 1  , 'B':   20, 'V' : 0.2})
+
+        result = sut_loc.read_contents()
+
+        result_tree = pivot(result, "index.A", "index.B")
+        result_tree_txt = json.dumps(result_tree, sort_keys=True)
+        print(result_tree_txt)
+
+        self.maxDiff = 2000
+        self.assertEquals(result_tree_txt, '{"1": {"10": {"AB.V": 0.1, "index.A": "1", "index.B": "10"}, "20": {"AB.V": 0.2, "index.A": "1", "index.B": "20"}}}'
         )
 
     def test_2filocs_filter_on_first_locpath(self):

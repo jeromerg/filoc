@@ -108,10 +108,13 @@ def _join(
     result = []
     for row1 in table1:
         rows2 = _get_rows2(row1, table2, join_keys, table2_index_cache)
-        for row2 in rows2:
-            r = row1.copy()
-            r.update(row2)
-            result.append(r)
+        if len(rows2) == 0:
+            result.append(row1.copy())  # outer join
+        else:
+            for row2 in rows2:
+                r = row1.copy()
+                r.update(row2)
+                result.append(r)
     return result
 
 
