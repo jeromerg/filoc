@@ -15,6 +15,7 @@ _default_backend         = 'json'
 _default_singleton       = True
 _default_encoding        = None
 _default_writable        = False
+_default_transaction     = True
 _default_timestamp_col   = None
 _default_join_level_name = 'index'
 _default_join_separator  = '.'
@@ -55,6 +56,7 @@ def filoc(
         singleton        : bool                                      = _default_singleton,
         encoding         : Optional[str]                             = _default_encoding,
         writable         : Optional[bool]                            = _default_writable,
+        transaction      : Optional[bool]                            = _default_transaction,
         cache_locpath    : Optional[str]                             = None,
         cache_fs         : Optional[AbstractFileSystem]              = None,
         timestamp_col    : Optional[str]                             = _default_timestamp_col,
@@ -98,6 +100,10 @@ def filoc(
 
         writable:
             If True, then write operations are allowed. Elsewhere write operation raises an ``UnsupportedOperation`` error.
+
+        transaction:
+            If True, then write into a temp file and then rename the file to the target file.
+            Renaming is on certain file system is atomic, which provide a cheap transaction behavior on a single file.
 
         cache_locpath:
             Default: None. Defines a locpath string (fsspec path with format placeholders), used by the created ``Filoc`` instance to cache 
@@ -144,6 +150,7 @@ def filoc(
                     backend         = backend        ,
                     singleton       = singleton      ,
                     writable        = writable       ,
+                    transaction     = transaction    ,
                     cache_locpath   = None           ,  # Remark: currently cache is not forwarded to sub-filocs
                     cache_fs        = None           ,  # Remark: currently cache is not forwarded to sub-filocs
                     timestamp_col   = timestamp_col  ,
@@ -158,6 +165,7 @@ def filoc(
         return FilocComposite(
             filoc_by_name           = filoc_by_name,
             frontend                = frontend_impl,
+            transaction             = transaction,
             join_level_name         = join_level_name,
             join_separator          = join_separator,
         )
@@ -165,6 +173,7 @@ def filoc(
         return FilocSingle(
             locpath       = locpath,
             writable      = writable,
+            transaction   = transaction,
             frontend      = frontend_impl,
             backend       = backend_impl,
             cache_locpath = cache_locpath,
@@ -181,6 +190,7 @@ def filoc_json_single(
         backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
         singleton       : bool                                    = _default_singleton,
         writable        : Optional[bool]                          = _default_writable,
+        transaction     : Optional[bool]                          = _default_transaction,
         cache_locpath   : Optional[str]                           = None,
         cache_fs        : Optional[AbstractFileSystem]            = None,
         timestamp_col   : Optional[str]                           = _default_timestamp_col,
@@ -195,6 +205,7 @@ def filoc_json_single(
         backend         = backend              ,
         singleton       = singleton            ,
         writable        = writable             ,
+        transaction     = transaction          ,
         cache_locpath   = cache_locpath        ,
         cache_fs        = cache_fs             ,
         timestamp_col   = timestamp_col        ,
@@ -211,6 +222,7 @@ def filoc_json_composite(
         backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
         singleton       : bool                                    = _default_singleton,
         writable        : Optional[bool]                          = _default_writable,
+        transaction     : Optional[bool]                          = _default_transaction,
         cache_locpath   : Optional[str]                           = None,
         cache_fs        : Optional[AbstractFileSystem]            = None,
         timestamp_col   : Optional[str]                           = _default_timestamp_col,
@@ -225,6 +237,7 @@ def filoc_json_composite(
         backend         = backend              ,
         singleton       = singleton            ,
         writable        = writable             ,
+        transaction     = transaction          ,
         cache_locpath   = cache_locpath        ,
         cache_fs        = cache_fs             ,
         timestamp_col   = timestamp_col        ,
@@ -241,6 +254,7 @@ def filoc_pandas_single(
         backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
         singleton       : bool                                    = _default_singleton,
         writable        : Optional[bool]                          = _default_writable,
+        transaction     : Optional[bool]                          = _default_transaction,
         cache_locpath   : Optional[str]                           = None,
         cache_fs        : Optional[AbstractFileSystem]            = None,
         timestamp_col   : Optional[str]                           = _default_timestamp_col,
@@ -255,6 +269,7 @@ def filoc_pandas_single(
         backend         = backend                ,
         singleton       = singleton              ,
         writable        = writable               ,
+        transaction     = transaction            ,
         cache_locpath   = cache_locpath          ,
         cache_fs        = cache_fs               ,
         timestamp_col   = timestamp_col          ,
@@ -271,6 +286,7 @@ def filoc_pandas_composite(
         backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
         singleton       : bool                                    = _default_singleton,
         writable        : Optional[bool]                          = _default_writable,
+        transaction     : Optional[bool]                          = _default_transaction,
         cache_locpath   : Optional[str]                           = None,
         cache_fs        : Optional[AbstractFileSystem]            = None,
         timestamp_col   : Optional[str]                           = _default_timestamp_col,
@@ -285,6 +301,7 @@ def filoc_pandas_composite(
         backend         = backend                ,
         singleton       = singleton              ,
         writable        = writable               ,
+        transaction     = transaction            ,
         cache_locpath   = cache_locpath          ,
         cache_fs        = cache_fs               ,
         timestamp_col   = timestamp_col          ,

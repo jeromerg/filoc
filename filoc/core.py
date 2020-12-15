@@ -50,6 +50,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             self,
             locpath       : str                                  ,
             writable      : bool                                 ,
+            transaction   : bool                                 ,
             frontend      : FrontendContract[TContent, TContents],
             backend       : BackendContract                      ,
             cache_locpath : str                                  ,
@@ -62,6 +63,7 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
         """
 
         self.filoc_io      = FilocIO(locpath, writable=writable, fs=fs)
+        self.transaction   = transaction
         self.frontend      = frontend
         self.backend       = backend
 
@@ -277,7 +279,15 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
         
         props_list = self.frontend.write_content(content)
-        self._write_props_list(props_list, dry_run=dry_run)
+
+        def save():
+            self._write_props_list(props_list, dry_run=dry_run)
+
+        if self.transaction:
+            with self.filoc_io.fs.transaction:
+                save()
+        else:
+            save()
 
     def write_contents(self, contents : TContents, dry_run=False):
         """ See ``Filoc`` contract """
@@ -285,7 +295,15 @@ class FilocSingle(Filoc[TContent, TContents], ABC):
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
         props_list = self.frontend.write_contents(contents)
-        self._write_props_list(props_list, dry_run=dry_run)
+
+        def save():
+            self._write_props_list(props_list, dry_run=dry_run)
+
+        if self.transaction:
+            with self.filoc_io.fs.transaction:
+                save()
+        else:
+            save()
 
     def _write_props_list(self, props_list : ReadOnlyPropsList, dry_run=False):
         if not self.filoc_io.writable:
@@ -347,6 +365,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
             self,
             filoc_by_name           : Dict[str, FilocSingle],
             frontend                : FrontendContract,
+            transaction             : bool,
             join_level_name         : str,
             join_separator          : str,
     ):
@@ -357,6 +376,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
                 raise ValueError(f'filoc {filoc_name} is not a FilocSingle instance. FilocComposite only support FilocSingle sub-filocs')
 
         self.frontend        = frontend
+        self.transaction     = transaction
         self.filoc_by_name   = filoc_by_name
         self.join_level_name = join_level_name
         self.join_separator  = join_separator
@@ -444,7 +464,33 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
                 props.update(relevant_index)
 
         # delegate writing to
-        for filoc_name, filoc_props_list in props_list_by_filoc_name.items():
-            filoc = self.filoc_by_name[filoc_name]
-            # noinspection PyProtectedMember
-            filoc._write_props_list(filoc_props_list, dry_run=dry_run)
+        def save():
+            for filoc_name, filoc_props_list in props_list_by_filoc_name.items():
+                filoc = self.filoc_by_name[filoc_name]
+                # noinspection PyProtectedMember
+                filoc._write_props_list(filoc_props_list, dry_run=dry_run)
+
+        if self.transaction:
+
+            # begin compound transaction
+            for filoc_name in props_list_by_filoc_name:
+                filoc = self.filoc_by_name[filoc_name]
+                filoc.filoc_io.fs.transaction.__enter__()
+
+            try:
+                save()
+
+                # commit compound transaction
+                for filoc_name in props_list_by_filoc_name:
+                    filoc = self.filoc_by_name[filoc_name]
+                    filoc.filoc_io.fs.transaction.__exit__(None, None, None)
+
+            except:
+                exc_info = sys.exc_info()
+                # rollback compound transaction
+                for filoc_name in props_list_by_filoc_name:
+                    filoc = self.filoc_by_name[filoc_name]
+                    filoc.filoc_io.fs.transaction.__exit__(*exc_info)
+        else:
+            # no transaction
+            save()
