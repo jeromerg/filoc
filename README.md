@@ -236,7 +236,7 @@ previous example, the second "sub-filoc" 'finance' is declared "writable", where
 Now, see how such a composite filoc works:
 
 ```python
-df = read_contents() 
+df = mloc.read_contents() 
 
 print(df)
 
@@ -259,6 +259,8 @@ In this example, we have set the finance filoc *writable*, so we can edit the da
 
 ```python
 df.loc[ (df['index.year'] == 2019) & (df['index.company'] == 'OVH'), 'finance.revenue'] = 0
+
+mloc.write_contents(df)
 ```
 
 We check the updated file content:

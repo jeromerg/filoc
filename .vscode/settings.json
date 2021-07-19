@@ -13,7 +13,7 @@
         "test_*.py"
     ],
     "pythonTestExplorer.testFramework": "unittest",
-    "restructuredtext.confPath": "${workspaceFolder}/docs/source",
+    "restructuredtext.confPath": "${workspaceFolder}\\docs\\source",
     "files.exclude": {
         "**/.classpath": true,
         "**/.project": true,
@@ -22,5 +22,5 @@
     },
     "python.linting.enabled": true,
     "python.languageServer": "Pylance",
-    "python.pythonPath": "/usr/bin/python3"
+    "python.pythonPath": "C:\\Python39\\python.exe"
 }
