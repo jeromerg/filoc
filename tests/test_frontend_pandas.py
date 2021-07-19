@@ -6,7 +6,7 @@ import unittest
 
 from pandas import DataFrame, Series
 
-from filoc import FilocIO, filoc_pandas_single
+from filoc import FilocIO, filoc_pandas
 # noinspection PyMissingOrEmptyDocstring
 from filoc.contract import SingletonExpectedError, FrontendConversionError
 
@@ -30,7 +30,7 @@ class TestPandasFrontend(unittest.TestCase):
         with wloc.open({"simid": 1, "epid": 20}, "w") as f:
             json.dump({'a': 200}, f)
 
-        loc = filoc_pandas_single(self.path_fmt)
+        loc = filoc_pandas(self.path_fmt)
 
         # test 1
         # noinspection PyUnusedLocal
@@ -45,7 +45,7 @@ class TestPandasFrontend(unittest.TestCase):
             pass
 
     def test_write_contents_from_records(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
         # TODO: improve generic typing to avoid this line below
         # noinspection PyTypeChecker
 
@@ -70,7 +70,7 @@ class TestPandasFrontend(unittest.TestCase):
         self.assertEqual('{"a": 400}', json.dumps(c4, sort_keys=True))
 
     def test_write_contents_from_DataFrame(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
 
         # ACT
         wloc.write_contents(DataFrame([
@@ -93,7 +93,7 @@ class TestPandasFrontend(unittest.TestCase):
         self.assertEqual('{"a": 400}', json.dumps(c4, sort_keys=True))
 
     def test_write_contents_from_unsupported(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
 
         # ACT, ASSERT
         try:
@@ -105,7 +105,7 @@ class TestPandasFrontend(unittest.TestCase):
 
 
     def test_write_content_from_dict(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
         # TODO: improve generic typing to avoid this line below
         # noinspection PyTypeChecker
 
@@ -119,7 +119,7 @@ class TestPandasFrontend(unittest.TestCase):
         self.assertEqual('{"a": 100}', json.dumps(c1, sort_keys=True))
 
     def test_write_contents_from_Series(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
 
         # ACT
         wloc.write_content(Series({"simid": 1, "epid": 10, 'a': 100}))
@@ -131,7 +131,7 @@ class TestPandasFrontend(unittest.TestCase):
         self.assertEqual('{"a": 100}', json.dumps(c1, sort_keys=True))
 
     def test_write_content_from_unsupported(self):
-        wloc = filoc_pandas_single(self.path_fmt, writable=True)
+        wloc = filoc_pandas(self.path_fmt, writable=True)
 
         # ACT, ASSERT
         try:

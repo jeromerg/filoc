@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import unittest
 
-from filoc import filoc_json_single, FilocIO
+from filoc import filoc_json, FilocIO
 # noinspection PyMissingOrEmptyDocstring
 from filoc.contract import SingletonExpectedError, FrontendConversionError
 
@@ -28,7 +28,7 @@ class TestJsonFrontend(unittest.TestCase):
         with wloc.open({"simid": 1, "epid": 20}, "w") as f:
             json.dump({'a': 200}, f)
 
-        loc = filoc_json_single(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
 
         # test 1
         # noinspection PyUnusedLocal
@@ -43,7 +43,7 @@ class TestJsonFrontend(unittest.TestCase):
             pass
 
     def test_write_contents_from_records(self):
-        wloc = filoc_json_single(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
         # TODO: improve generic typing to avoid this line below
         # noinspection PyTypeChecker
 
@@ -68,7 +68,7 @@ class TestJsonFrontend(unittest.TestCase):
         self.assertEqual('{"a": 400}', json.dumps(c4, sort_keys=True))
 
     def test_write_contents_from_unsupported(self):
-        wloc = filoc_json_single(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
 
         # ACT, ASSERT
         try:
@@ -79,7 +79,7 @@ class TestJsonFrontend(unittest.TestCase):
             pass
 
     def test_write_content_from_dict(self):
-        wloc = filoc_json_single(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
         # TODO: improve generic typing to avoid this line below
         # noinspection PyTypeChecker
 
@@ -93,7 +93,7 @@ class TestJsonFrontend(unittest.TestCase):
         self.assertEqual('{"a": 100}', json.dumps(c1, sort_keys=True))
 
     def test_write_content_from_unsupported(self):
-        wloc = filoc_json_single(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
 
         # ACT, ASSERT
         try:

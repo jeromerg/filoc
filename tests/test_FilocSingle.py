@@ -7,7 +7,7 @@ import time
 import unittest
 from pathlib import Path
 
-from filoc import filoc_json_single, FilocIO
+from filoc import filoc_json, FilocIO
 
 
 # noinspection PyMissingOrEmptyDocstring
@@ -42,7 +42,7 @@ class TestFilocSingle(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
         with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
 
-        loc = filoc_json_single(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
@@ -63,7 +63,7 @@ class TestFilocSingle(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
         with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
 
-        loc = filoc_json_single(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
         p = loc.read_contents()
         self.assertEqual(len(p), 4)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 200, "epid": 20, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}, {"a": 400, "epid": 20, "simid": 2}]', json.dumps(p, sort_keys=True))
@@ -75,7 +75,7 @@ class TestFilocSingle(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
         with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
 
-        loc = filoc_json_single(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
         self.assertEqual('[{"a": 100, "epid": 10, "simid": 1}, {"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
@@ -87,7 +87,7 @@ class TestFilocSingle(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 10}, "w") as f: json.dump({'a': 300}, f)
         with wloc.open({"simid": 2, "epid": 20}, "w") as f: json.dump({'a': 400}, f)
 
-        loc = filoc_json_single(self.path_fmt)
+        loc = filoc_json(self.path_fmt)
         p = loc.read_contents({'a': 300})
         self.assertEqual(len(p), 1)
         self.assertEqual('[{"a": 300, "epid": 10, "simid": 2}]', json.dumps(p, sort_keys=True))
@@ -104,7 +104,7 @@ class TestFilocSingle(unittest.TestCase):
         with wloc.open({"simid": 2, "epid": 20}, "w") as f:
             json.dump({'a': 400}, f)
 
-        loc = filoc_json_single(self.path_fmt, cache_locpath='.cache')
+        loc = filoc_json(self.path_fmt, cache_locpath='.cache')
         print("read_contents 1")
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
@@ -128,7 +128,7 @@ class TestFilocSingle(unittest.TestCase):
         # act_assert()
 
         # Trick to test: signature change does not take effect, because of cache
-        loc = filoc_json_single(self.path_fmt, cache_locpath='.cache')
+        loc = filoc_json(self.path_fmt, cache_locpath='.cache')
         print("re read_contents 3")
         p = loc.read_contents({'epid': 10})
         self.assertEqual(len(p), 2)
@@ -136,7 +136,7 @@ class TestFilocSingle(unittest.TestCase):
                          json.dumps(p, sort_keys=True))
 
     def test_write_contents(self):
-        wloc = filoc_json_single(self.path_fmt, writable=True)
+        wloc = filoc_json(self.path_fmt, writable=True)
         wloc._write_props_list([
             {"simid": 1, "epid": 10, 'a': 100},
             {"simid": 1, "epid": 20, 'a': 200},

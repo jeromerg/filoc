@@ -7,34 +7,34 @@ Filoc is a highly customizable library that primarily enables you to:
 - Visualize the content of a *set of files* as a pandas DataFrame
 - Save a DataFrame into a *set of files*
 
-The *set of files* is defined by a [format string] where the placeholders are part of the data. Consider the following 
+The *set of files* is defined by a [format string] where the placeholders are part of the data. Consider the following
 format string:
 
-```
+```bash
 /data/{country}/{company}/info.json
 ```
 
-You see two placeholders, namely `country` and `company`. Both are part of the data read and saved by filoc. Let's 
-say that the `info.json` files contain two additional attributes `address` and `phone`, then filoc works as a 
+You see two placeholders, namely `country` and `company`. Both are part of the data read and saved by filoc. Let's
+say that the `info.json` files contain two additional attributes `address` and `phone`, then filoc works as a
 bidirectional binding between the files and a DataFrame with the following columns:
 
 | <br> | country | company | address | phone |
 | ---- | ------- | ------- | ------- | ----- |
 | ...  | ...     | ...     | ...     | ...   |
 
-This is the key feature of filoc, which enables you to choose the best path structure for *your needs* and at the 
+This is the key feature of filoc, which enables you to choose the best path structure for *your needs* and at the
 same time to manipulate the whole data set in a single DataFrame!
 
 Filoc is highly customizable: You can work with any type of files (builtins: *json*, *yaml*, *csv*, *pickle*) on any
- file system (*local*, *ftp*, *sftp*, *http*, *dropbox*, *google storage*, *google drive*, *hadoop*, *azure data storages*, 
+ file system (*local*, *ftp*, *sftp*, *http*, *dropbox*, *google storage*, *google drive*, *hadoop*, *azure data storages*,
  *samba*). You can even replace the pandas DataFrame by an alternative "frontend" if you need (builtins: *pandas* and *json*).
 
 ## Use Cases (Jupyter Notebook)
 
-You can get a concrete and practical insight of filoc in the following show-case notebooks: 
+You can get a concrete and practical insight of filoc in the following show-case notebooks:
 
 [Machine Learning Workflow with filoc](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/machine_learning/example_ml.html)
- 
+
 [Covid-19 Data Analysis from the John Hopkins University Github repository](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/covid_github/example_covid_github.html)
 
 ## Basic example
@@ -50,17 +50,18 @@ pip install filoc
 ### Import
 
 In most scenarios, you only need to import the `filoc(...)` factory function:
+
 ```python
 from filoc import filoc
 ```  
 
 This is the most pythonic way to use filoc, but you can also use alternative factories to improve IDE static analysis,
-namely `filoc_json_single(...)`, `filoc_json_composite(...)`, `filoc_pandas_single(...)`, `filoc_pandas_composite(...)`.
+namely `filoc_json(...)` and `filoc_pandas(...)`.
 
 ### Create a `Filoc` instance
 
 Let's create a `Filoc` instance to work with *set of files* previously defined by the format path
-`/data/{country}/{company}/info.json`: 
+`/data/{country}/{company}/info.json`:
 
 ```python
 loc = filoc('/data/{country}/{company}/info.json')
@@ -84,6 +85,7 @@ print(df)
 ```
 
 ### Read a subset of files
+
 Instead of reading all the files, you can restrict the reading to a subset of files by adding conditions:
 
 ```python
@@ -100,7 +102,7 @@ print(df)
 
 ### Write to the *set of files*
 
-`Filoc` instance are by default readonly. We need to create a writable `Filoc`: 
+`Filoc` instance are by default readonly. We need to create a writable `Filoc`:
 
 ```python
 # The filoc need to be initialized as writable
@@ -130,9 +132,9 @@ Let's see with a linux shell, that the file was properly updated:
 
 ### Working with a single entry
 
-Sometimes, it is convenient to focus your work on a single row of the data set. Filoc allows you to work with 
-a pandas Series instead of a DataFrame. The following table shows the filoc functions in relation 
-to respectively DataFrame and Series: 
+Sometimes, it is convenient to focus your work on a single row of the data set. Filoc allows you to work with
+a pandas Series instead of a DataFrame. The following table shows the filoc functions in relation
+to respectively DataFrame and Series:
 
 | cardinality | read                | write                | frontend class |
 | ----------- | ------------------- | -------------------- | -------------- |
@@ -165,7 +167,7 @@ loc.write_content(series)
 
 ## Typed placeholders
 
-A format placeholder can be typed to map to a specific python type. Filoc leverages the conventional 
+A format placeholder can be typed to map to a specific python type. Filoc leverages the conventional
 [format string] syntax. Useful and tested are mappings to integer and float:
 
 ```python
@@ -207,7 +209,7 @@ It enables filoc to work with the following file systems:
 
 ## Composite
 
-Filoc instances can be joined together into a "composite filoc". The simplest syntax for that is to replace the single 
+Filoc instances can be joined together into a "composite filoc". The simplest syntax for that is to replace the single
 format path by a keyed list of paths:
 
 ```python
@@ -231,7 +233,7 @@ mloc = filoc({
 The alternative syntax is especially important, if you need to override the configuration for a specific "sub-filoc". In the
 previous example, the second "sub-filoc" 'finance' is declared "writable", whereas the first one remains readonly.
 
-Now, see how such a composite filoc works: 
+Now, see how such a composite filoc works:
 
 ```python
 df = read_contents() 
@@ -249,8 +251,8 @@ print(df)
 # 5       Germany         Strato        2020               Berlin    +49303001460        54411544
 ```
 
-Filoc joins the data from the two *set of files* together. It uses the format placeholders from the format path as 
-join keys, to match and join the rows together from the both *set of files*. The shared keys are prefixed by `'index.'` whereas the attributes found 
+Filoc joins the data from the two *set of files* together. It uses the format placeholders from the format path as
+join keys, to match and join the rows together from the both *set of files*. The shared keys are prefixed by `'index.'` whereas the attributes found
 in the files themselves are prefixed by the named of the filoc.
 
 In this example, we have set the finance filoc *writable*, so we can edit the dataframe and save back the result:
@@ -261,7 +263,7 @@ df.loc[ (df['index.year'] == 2019) & (df['index.company'] == 'OVH'), 'finance.re
 
 We check the updated file content:
 
-```
+```bash
 $> cat /data/France/OVH/2019_revenue.json
 {
   "revenue": 0
@@ -269,16 +271,16 @@ $> cat /data/France/OVH/2019_revenue.json
 
 ```
 
-## Backend 
+## Backend
 
-Filoc backend is the part of the implementation, that processes the files. You define the backend via the 
+Filoc backend is the part of the implementation, that processes the files. You define the backend via the
 `backend` argument of the `filoc(...)` factory:
 
 ```python
 loc = filoc(..., backend='yaml')
 ```
 
-### Builtin backends 
+### Builtin backends
 
 Filoc has four builtin backends:
 
@@ -291,16 +293,16 @@ Name     | Description   | option `singleton` | option `encoding`
 
 - Option `singleton`: If True, then filoc reads and writes a single object in each file (Mapping). If False the filoc
  reads and writes lists of object (List of Mapping).
-- Option `encoding`: Configure the encoding of the file read and written by filoc. 
+- Option `encoding`: Configure the encoding of the file read and written by filoc.
 
-### Custom backends 
+### Custom backends
 
 You can also work with custom files and perform custom pre-processing to the files, by passing a custom instance of
 the `BackendContract` contract.
 
 ## Frontend
 
-Filoc frontend is the part of the implementation, that transforms the file content to a python object, namely by 
+Filoc frontend is the part of the implementation, that transforms the file content to a python object, namely by
 default a DataFrame (returned by `read_contents(...)`) or a Series (returned by `read_content(..)`).
 
 ### Builtin frontends
@@ -318,12 +320,12 @@ You can work with custom frontend objects, by passing a custom instance of the `
 
 ## Caching
 
-The `filoc(...)` factory accepts a `cache_locpath` and `cache_fs` arguments. This feature is particularly useful when 
-you work on remote file system or when the backend processes a large amount of data. The cache is invalidated when the 
+The `filoc(...)` factory accepts a `cache_locpath` and `cache_fs` arguments. This feature is particularly useful when
+you work on remote file system or when the backend processes a large amount of data. The cache is invalidated when the
 path timestamp has changed on the file system.
 
-The `cache_locpath` may contain format placeholders. In that case, the cache is split into multiple files basedd on 
-the placeholder values. This features allows to "encapsulate" the cache data in the same folder as the original data, 
+The `cache_locpath` may contain format placeholders. In that case, the cache is split into multiple files basedd on
+the placeholder values. This features allows to "encapsulate" the cache data in the same folder as the original data,
 or in the same folder structure as the original data.
 
 Example:
@@ -332,13 +334,10 @@ Example:
 loc = filoc('github://user:rep/data/{country}/{company}/info.json', cache_locpath='/cache/{country}/cache.dat')
 ```
 
-
-
 ## Locking
 
 A simple locking mechanism working on local and remote file systems allows you to synchronize the reading and
  writing of files:
-
 
 ```python
 with loc.lock():
@@ -352,9 +351,7 @@ In this example, the reading and writing is garanteed to be concurrent safe.
 The locking mechanism consists of writing a lock file on the file system: It means that the protection only
 works against concurrent accesses that use the same call convention inside the `Filoc.lock()` statement.
 
-
-<img src="./enjoy_filoc.svg" alt="enjoy_filoc" width="800"/>     
-
+<img src="./enjoy_filoc.svg" alt="enjoy_filoc" width="800"/>
 
 [format string]: https://docs.python.org/3/library/string.html#format-string-syntax
 [local]: https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.implementations.local.LocalFileSystem
