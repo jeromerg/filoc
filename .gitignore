@@ -8,3 +8,4 @@ temp
 .vscode
 /tests/.cache
 .cache
+venv/
