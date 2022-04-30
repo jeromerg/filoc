@@ -488,3 +488,16 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         else:
             # no transaction
             save()
+
+    @contextmanager
+    def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
+        """ See ``Filoc`` contract """
+        raise NotImplementedError("TODO: Implement")
+
+    def lock_info(self) -> Optional[Dict[str, Any]]:
+        """ See ``Filoc`` contract """
+        raise NotImplementedError("TODO: Implement")
+
+    def lock_force_release(self):
+        """ See ``Filoc`` contract """
+        raise NotImplementedError("TODO: Implement")

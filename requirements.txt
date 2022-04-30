@@ -19,3 +19,4 @@ sklearn
 tensorflow 
 torch
 torchvision
+coverage

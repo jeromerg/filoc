@@ -7,7 +7,7 @@ custom frontends and backends need to implement.
 # Types aliases
 # -------------
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TypeVar, Any, List, Generic, Optional, Mapping, Dict, Collection
 from fsspec import AbstractFileSystem
 
@@ -78,6 +78,7 @@ class SingletonExpectedError(FrontendConversionError):
 class BackendContract(ABC):
     """The abstract class that filoc backends need to implement."""
 
+    @abstractmethod
     def read(self, fs: AbstractFileSystem, path: str, path_props : Props, constraints: Constraints) -> PropsList:
         """Reads the data contained at ``path`` on the file system ``fs``, applies additional filters defined in ``constraints`` and convert the data to the filoc intermediate representation.
 
@@ -92,6 +93,7 @@ class BackendContract(ABC):
         """
         raise NotImplementedError("Abstract")
 
+    @abstractmethod
     def write(self, fs : AbstractFileSystem, path : str, props_list : PropsList) -> None:
         """Writes the data contained in ``props_list`` into ``path`` on the file system ``fs``.
 
@@ -110,6 +112,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
     TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
+    @abstractmethod
     def read_content(self, props_list : PropsList) -> TContent:
         """ Converts the ``props_list`` intermediate representation into a frontend ``TContent`` object. 
         
@@ -124,6 +127,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError("Abstract")
 
+    @abstractmethod
     def read_contents(self, props_list : PropsList) -> TContents:
         """ Converts the ``props_list`` intermediate representation into a frontend ``TContents`` object. 
 
@@ -135,6 +139,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError("Abstract")
 
+    @abstractmethod
     def write_content(self, content : TContent) -> ReadOnlyPropsList:
         """ Converts the frontend ``TContent`` object into the filoc intermediate representation.
 
@@ -146,6 +151,7 @@ class FrontendContract(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError("Abstract")
 
+    @abstractmethod
     def write_contents(self, contents : TContents) -> ReadOnlyPropsList:
         """ Converts the frontend ``TContents`` object into the filoc intermediate representation.
 
@@ -165,10 +171,7 @@ class Filoc(Generic[TContent, TContents], ABC):
     TContents ([Any]): The type returned by ``get_contents(...)`` and expected by ``write_contents(...)``
     """
 
-    def list_paths(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Props) -> List[str]:
-        """ Get the existing paths fulfilling the provided constraints. """
-        raise NotImplementedError('Abstract')
-
+    @abstractmethod
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
         """Prevents other filoc instances to concurrently read or write any file in the filoc tree. Usage:
 
@@ -183,6 +186,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def lock_info(self) -> Optional[Mapping[str, Any]]:
         """Returns the information contained in the lock file(s) augmented of the file timestamp if it exists, elsewhere null.
         For a single filoc, it returns simple key-values. 
@@ -191,10 +195,12 @@ class Filoc(Generic[TContent, TContents], ABC):
         This function is useful in case of problems, in order to analyze what's happening (mostly to check whether the lock owner is still alive)"""
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def lock_force_release(self):
         """Forces the removing of lock file even a concurrent process is still supposed to own it. Consider this method as your "last action before being fired"!"""
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """Delete the cache data for the provided constraints, to ensure that the data will be re-fetched by the filoc backend at the next ``get_content(...)`` or ``get_contents(...)`` calls.
         
@@ -203,6 +209,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         In that case, it may be required to invalidate the cache manually with the current method. """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """Reads the data entries fulfilling the ``constraints`` and converts them to a TContent object. With the filoc default frontend implementations, the ``constraints`` must result in the
         selection of a single entry. If multiple rows are selected, the call raises a ``SingletonExpectedError``
@@ -219,6 +226,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def read_contents(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContents:
         """Reads the data entries fulfilling the ``constraints`` and converts them to a TContents object. 
 
@@ -233,6 +241,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def _read_props_list(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> PropsList:
         """Reads the data entries fulfilling the ``constraints`` and converts them to the filoc intermediate representation.
         This function is used internally to shared the intermediate representation in filoc composites.
@@ -245,6 +254,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def write_content(self, content : TContent, dry_run=False):
         """Writes the ``content`` entry to the file system.
 
@@ -257,6 +267,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def write_contents(self, contents : TContents, dry_run=False):
         """Writes the ``contents`` entries to the file system.
 
@@ -269,6 +280,7 @@ class Filoc(Generic[TContent, TContents], ABC):
         """
         raise NotImplementedError('Abstract')
 
+    @abstractmethod
     def _write_props_list(self, props_list : PropsList, dry_run=False):
         """Write the filoc intermediate representation to the file system via the backend.
         This function is used internally to shared the intermediate representation in filoc composites.

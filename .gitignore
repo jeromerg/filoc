@@ -9,3 +9,5 @@ temp
 /tests/.cache
 .cache
 venv/
+/coverage_html_report
+.coverage
