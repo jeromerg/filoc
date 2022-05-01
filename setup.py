@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="filoc",
-    version="0.0.17",
+    version="0.0.18",
     author="jeromerg",
     author_email="jeromerg@gmx.net",
     description="eases the saving and reading of files within a structured folder tree",

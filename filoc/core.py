@@ -62,15 +62,15 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         if cache_locpath is relative, then it will be relative to result_locpath
         """
         FilocIO.__init__(self, locpath, writable, fs)
-        self.transaction   = transaction
-        self.frontend      = frontend
-        self.backend       = backend
+        self._transaction   = transaction
+        self._frontend      = frontend
+        self._backend       = backend
 
         # cache loc
-        self.cache_loc = None
+        self._cache_loc = None
         if cache_locpath is not None:
-            self.cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
-        self.timestamp_col = timestamp_col
+            self._cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
+        self._timestamp_col = timestamp_col
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
@@ -93,8 +93,8 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
                     continue
 
             # else we try to acquire the lock
-            self.fs.makedirs(self.root_folder, exist_ok=True)
-            with self.fs.open(lock_file, 'w') as f:
+            self._fs.makedirs(self._root_folder, exist_ok=True)
+            with self._fs.open(lock_file, 'w') as f:
                 json.dump({
                     'host' : socket.gethostname(),
                     'pid' : os.getpid(),
@@ -109,7 +109,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
             finally:
                 # else either failed to acquire lock (concurrent won) or some error. We clean up and retry (loop)
                 try:
-                    self.fs.delete(lock_file)
+                    self._fs.delete(lock_file)
                 except FileNotFoundError:
                     log.warning(f"Lock file {lock_file} has been concurrently deleted (by self.lock_force_release()?). No need to remove it")        
         raise LockException(f"Failed to acquire the file lock after {attempt_count} attempts")
@@ -121,7 +121,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
             return None
 
         try:
-            with self.fs.open(owning_lock_date_and_file[1], 'r') as f:
+            with self._fs.open(owning_lock_date_and_file[1], 'r') as f:
                 info = json.load(f)
             info['date'] = owning_lock_date_and_file[0]
             return info
@@ -137,13 +137,13 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
 
         lock_file = owning_lock_date_and_file[1]
         try:
-            self.fs.delete(lock_file)
+            self._fs.delete(lock_file)
             log.warning(f'Forced releasing of lock file "{lock_file}"')
         except FileNotFoundError:
             return
 
     def _get_owning_lock_date_and_file(self) -> Optional[Tuple[datetime, str]]:
-        lock_files = self.fs.glob(f'{self.root_folder}/.lock_*')
+        lock_files = self._fs.glob(f'{self._root_folder}/.lock_*')
         if len(lock_files) == 0:
             return None
         
@@ -151,7 +151,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         oldest_file = None
         for lock_file in lock_files:
             try: 
-                date = self.fs.modified(lock_file)
+                date = self._fs.modified(lock_file)
             except FileNotFoundError: 
                 continue
             if oldest_date is None or date < oldest_date:
@@ -167,27 +167,27 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         pid       = os.getpid()
         thread_id = threading.get_ident()
         lock_id   = f'{host}_{pid}_{thread_id}'
-        lock_file = f'{self.root_folder}/.lock_{lock_id}'
+        lock_file = f'{self._root_folder}/.lock_{lock_id}'
         return lock_id, lock_file
 
     def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """ See ``Filoc`` contract """
-        if self.cache_loc is None:
+        if self._cache_loc is None:
             return
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        self.cache_loc.delete(constraints)
+        self._cache_loc.delete(constraints)
 
     def read_content(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContent:
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list = self._read_props_list(constraints)
-        return self.frontend.read_content(props_list)
+        return self._frontend.read_content(props_list)
 
     def read_contents(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> TContents:
         """ See ``Filoc`` contract """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         props_list  = self._read_props_list(constraints)
-        return self.frontend.read_contents(props_list)
+        return self._frontend.read_contents(props_list)
 
     def _read_props_list(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> PropsList:
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
@@ -196,13 +196,13 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         running_cache = None  # type:Optional[_RunningCache]
 
         paths_and_file_path_props  = self.list_paths_and_props(constraints)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self.locpath} fulfilling props {constraints}')
+        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self._locpath} fulfilling props {constraints}')
 
         for (path, file_path_props) in paths_and_file_path_props:
             path_props_hashable = frozendict(file_path_props.items())
 
             try:
-                f_timestamp = self.fs.modified(path)
+                f_timestamp = self._fs.modified(path)
             except NotImplementedError:
                 # fsspec implementation, that do not implement modified, are assumed to be read-only (example: github)
                 f_timestamp = None
@@ -210,9 +210,9 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
                 f_timestamp = None
                 
             # renew cache, on cache file change
-            if self.cache_loc:
-                path_cache_path       = self.cache_loc.render_path(file_path_props)
-                cache_file_path_props = self.cache_loc.parse_path_properties(path_cache_path)
+            if self._cache_loc:
+                path_cache_path       = self._cache_loc.render_path(file_path_props)
+                cache_file_path_props = self._cache_loc.parse_path_properties(path_cache_path)
 
                 if running_cache is not None and running_cache.key == cache_file_path_props:
                     pass  # cache file is always the correct one : do nothing, keep this cache file opened
@@ -220,18 +220,18 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
                     if running_cache is not None and running_cache.key != cache_file_path_props:
                         # flush previous cache, if exists
                         if running_cache.key:
-                            with self.cache_loc.open(running_cache.key, 'wb') as f:
+                            with self._cache_loc.open(running_cache.key, 'wb') as f:
                                 pickle.dump(running_cache.cache_by_file_path_props, f, )
 
                     # now prepare new cache file
-                    if self.cache_loc.exists(cache_file_path_props):
-                        with self.cache_loc.open(cache_file_path_props, 'rb') as f:
+                    if self._cache_loc.exists(cache_file_path_props):
+                        with self._cache_loc.open(cache_file_path_props, 'rb') as f:
                             running_cache = _RunningCache(cache_file_path_props, pickle.load(f))
                     else:
                         running_cache = _RunningCache(cache_file_path_props, dict())
 
             # check whether cache entry is still valid
-            if self.cache_loc:
+            if self._cache_loc:
                 if path_props_hashable in running_cache.cache_by_file_path_props:
                     path_cached_entry = running_cache.cache_by_file_path_props[path_props_hashable]
                     if path_cached_entry['timestamp'] == f_timestamp:
@@ -249,58 +249,58 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
             # augment read props with additional external data
             for props in props_list:
                 # -> file timestamp
-                if self.timestamp_col:
-                    props[self.timestamp_col] = f_timestamp
+                if self._timestamp_col:
+                    props[self._timestamp_col] = f_timestamp
                 # -> path_props
                 props.update(file_path_props)
 
             # add to result
             result.extend(props_list)
             # add to cache
-            if self.cache_loc:
+            if self._cache_loc:
                 running_cache.cache_by_file_path_props[path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : props_list.copy()}
 
         # flush last used cache
         if running_cache:
-            with self.cache_loc.open(running_cache.key, 'wb') as f:
+            with self._cache_loc.open(running_cache.key, 'wb') as f:
                 pickle.dump(running_cache.cache_by_file_path_props, f)
 
         return result
 
     def write_content(self, content : TContent, dry_run=False):
         """ See ``Filoc`` contract """
-        if not self.writable:
+        if not self._writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
         
-        props_list = self.frontend.write_content(content)
+        props_list = self._frontend.write_content(content)
 
         def save():
             self._write_props_list(props_list, dry_run=dry_run)
 
-        if self.transaction:
-            with self.fs.transaction:
+        if self._transaction:
+            with self._fs.transaction:
                 save()
         else:
             save()
 
     def write_contents(self, contents : TContents, dry_run=False):
         """ See ``Filoc`` contract """
-        if not self.writable:
+        if not self._writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
-        props_list = self.frontend.write_contents(contents)
+        props_list = self._frontend.write_contents(contents)
 
         def save():
             self._write_props_list(props_list, dry_run=dry_run)
 
-        if self.transaction:
-            with self.fs.transaction:
+        if self._transaction:
+            with self._fs.transaction:
                 save()
         else:
             save()
 
     def _write_props_list(self, props_list : ReadOnlyPropsList, dry_run=False):
-        if not self.writable:
+        if not self._writable:
             raise UnsupportedOperation('this filoc is not writable. Set writable flag to True to enable writing')
 
         recorded_row_id_by_path_props    = {}
@@ -324,7 +324,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
 
             log.info(f'{dry_run_log_prefix}Saving to {path}')
             if not dry_run:
-                self.backend.write(self.fs, path, other_props_list)
+                self._backend.write(self._fs, path, other_props_list)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
     def _split_keyvalues(self, keyvalues : ReadOnlyProps) -> Tuple[Props, Props, datetime]:
@@ -332,9 +332,9 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         timestamp   = None
         other_props = dict()
         for (k, v) in keyvalues.items():
-            if k in self.path_props:
+            if k in self._path_props:
                 path_props[k] = v
-            elif k == self.timestamp_col:
+            elif k == self._timestamp_col:
                 timestamp = keyvalues[k]
             else:
                 other_props[k] = v
@@ -342,7 +342,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
 
     def _read_path(self, path : str, path_props : Props, constraints : Constraints):
         log.info(f'Reading content for {path}')
-        content = self.backend.read(self.fs, path, path_props, constraints)
+        content = self._backend.read(self._fs, path, path_props, constraints)
         log.info(f'Read content for {path}')
         return content
 
@@ -377,7 +377,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
 
         self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
         for filoc_name, filoc in filoc_by_name.items():
-            self.join_keys_by_filoc_name[filoc_name] = filoc.path_props
+            self.join_keys_by_filoc_name[filoc_name] = filoc._path_props
 
     def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
         """ see ``Filoc`` contract """
@@ -426,7 +426,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         props_list_by_filoc_name = {}
         props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
         for filoc_name, filoc in self.filoc_by_name.items():
-            if filoc.writable:
+            if filoc._writable:
                 props_list_by_filoc_name[filoc_name] = [ dict() for _ in range(len(props_list)) ]
             else:
                 log.info(f'write operation skipped for "{filoc_name}" readonly Filoc')
@@ -469,7 +469,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
             # begin compound transaction
             for filoc_name in props_list_by_filoc_name:
                 filoc = self.filoc_by_name[filoc_name]
-                filoc.fs.transaction.__enter__()
+                filoc._fs.transaction.__enter__()
 
             try:
                 save()
@@ -477,14 +477,14 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
                 # commit compound transaction
                 for filoc_name in props_list_by_filoc_name:
                     filoc = self.filoc_by_name[filoc_name]
-                    filoc.fs.transaction.__exit__(None, None, None)
+                    filoc._fs.transaction.__exit__(None, None, None)
 
             except:
                 exc_info = sys.exc_info()
                 # rollback compound transaction
                 for filoc_name in props_list_by_filoc_name:
                     filoc = self.filoc_by_name[filoc_name]
-                    filoc.fs.transaction.__exit__(*exc_info)
+                    filoc._fs.transaction.__exit__(*exc_info)
         else:
             # no transaction
             save()
