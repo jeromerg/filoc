@@ -35,7 +35,7 @@ class TestBackendYaml(unittest.TestCase):
         df = loc.write_contents(df)
 
         with open(self.file) as f:
-            content = yaml.load(f)
+            content = yaml.safe_load(f)
 
         self.assertEqual(json.dumps(content, sort_keys=True),
                          json.dumps(data, sort_keys=True))

@@ -35,10 +35,10 @@ class TestMultiloc(unittest.TestCase):
 
         mloc = filoc_json({'conf' : self.conf_loc, 'hyp' : self.hyp_loc, 'res' : self.res_loc})
         mloc.write_contents([
-            {"index.simid": 1, "index.epid": 10, "hyp.a": 100, "res.b": 1000},
-            {"index.simid": 1, "index.epid": 20, "hyp.a": 200, "res.b": 2000},
-            {"index.simid": 2, "index.epid": 10, "hyp.a": 300, "res.b": 3000},
-            {"index.simid": 2, "index.epid": 20, "hyp.a": 400, "res.b": 4000},
+            {"shared.simid": 1, "shared.epid": 10, "hyp.a": 100, "res.b": 1000},
+            {"shared.simid": 1, "shared.epid": 20, "hyp.a": 200, "res.b": 2000},
+            {"shared.simid": 2, "shared.epid": 10, "hyp.a": 300, "res.b": 3000},
+            {"shared.simid": 2, "shared.epid": 20, "hyp.a": 400, "res.b": 4000},
         ])
 
         wloc = FilocIO(self.path_fmt_hyp)
@@ -68,7 +68,7 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual(len(p), 2)
 
         self.assertEqual(
-            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3000}]',
+            '[{"conf.confA": "Q", "hyp.a": 100, "res.b": 1000, "shared.epid": 10, "shared.simid": 1}, {"conf.confA": "R", "hyp.a": 300, "res.b": 3000, "shared.epid": 10, "shared.simid": 2}]',
             json.dumps(p, sort_keys=True))
 
         # ACT 3 (update)
@@ -76,7 +76,7 @@ class TestMultiloc(unittest.TestCase):
         mloc.write_contents(p)
         
         self.assertEqual(
-            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3333}]',
+            '[{"conf.confA": "Q", "hyp.a": 100, "res.b": 1000, "shared.epid": 10, "shared.simid": 1}, {"conf.confA": "R", "hyp.a": 300, "res.b": 3333, "shared.epid": 10, "shared.simid": 2}]',
             json.dumps(p, sort_keys=True))
 
         # ACT 3 (add attribute)
@@ -84,7 +84,7 @@ class TestMultiloc(unittest.TestCase):
         mloc.write_contents(p)
         
         self.assertEqual(
-            '[{"conf.confA": "Q", "hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"conf.confA": "R", "hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3333, "res.c": "NEW"}]',
+            '[{"conf.confA": "Q", "hyp.a": 100, "res.b": 1000, "shared.epid": 10, "shared.simid": 1}, {"conf.confA": "R", "hyp.a": 300, "res.b": 3333, "res.c": "NEW", "shared.epid": 10, "shared.simid": 2}]',
             json.dumps(p, sort_keys=True))
 
 

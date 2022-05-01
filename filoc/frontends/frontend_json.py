@@ -1,6 +1,6 @@
 """ Contains the default JSON frontend implementation """
 import logging
-from collections import Mapping, Collection
+from typing import Collection, Mapping
 
 from filoc.contract import SingletonExpectedError, TContents, PropsList, TContent, FrontendContract, \
     FrontendConversionError, ReadOnlyPropsList

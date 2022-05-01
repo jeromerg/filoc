@@ -33,20 +33,20 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.node_id", "index.leaf_id")
+        result_tree = pivot(result, "shared.node_id", "shared.leaf_id")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, 
+        self.assertEqual(result_tree_txt, 
             '{'
             '"1": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 1, "leaf.value": 0.1, "node.value": "A"}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 1, "leaf.value": 0.2, "node.value": "A"}'
+              '"1": {"leaf.value": 0.1, "node.value": "A", "shared.leaf_id": 1, "shared.node_id": 1}, '
+              '"2": {"leaf.value": 0.2, "node.value": "A", "shared.leaf_id": 2, "shared.node_id": 1}'
             '}, '
             '"2": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 2, "leaf.value": 1.1, "node.value": "B"}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 2, "leaf.value": 1.2, "node.value": "B"}'
+              '"1": {"leaf.value": 1.1, "node.value": "B", "shared.leaf_id": 1, "shared.node_id": 2}, '
+              '"2": {"leaf.value": 1.2, "node.value": "B", "shared.leaf_id": 2, "shared.node_id": 2}'
               '}'
             '}'
         )
@@ -67,20 +67,20 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.node_id", "index.leaf_id")
+        result_tree = pivot(result, "shared.node_id", "shared.leaf_id")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, 
+        self.assertEqual(result_tree_txt, 
             '{'
             '"1": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 1, "leaf1.value": 0.1, "leaf2.value": 1.0}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 1, "leaf1.value": 0.2, "leaf2.value": 2.0}'
+              '"1": {"leaf1.value": 0.1, "leaf2.value": 1.0, "shared.leaf_id": 1, "shared.node_id": 1}, '
+              '"2": {"leaf1.value": 0.2, "leaf2.value": 2.0, "shared.leaf_id": 2, "shared.node_id": 1}'
             '}, '
             '"2": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 2, "leaf1.value": 1.1, "leaf2.value": 11.0}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 2, "leaf1.value": 1.2, "leaf2.value": 12.0}'
+              '"1": {"leaf1.value": 1.1, "leaf2.value": 11.0, "shared.leaf_id": 1, "shared.node_id": 2}, '
+              '"2": {"leaf1.value": 1.2, "leaf2.value": 12.0, "shared.leaf_id": 2, "shared.node_id": 2}'
               '}'
             '}'
         )
@@ -97,12 +97,12 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.A", "index.B", "index.C", "index.D")
+        result_tree = pivot(result, "shared.A", "shared.B", "shared.C", "shared.D")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, '{"1": {"10": {"100": {"1000": {"AB.V": 0.1, "CD.V": 1.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.1, "CD.V": 2.0, "index.A": "1", "index.B": "10", "index.C": "100", "index.D": "2000"}}}, "20": {"100": {"1000": {"AB.V": 0.2, "CD.V": 1.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "1000"}, "2000": {"AB.V": 0.2, "CD.V": 2.0, "index.A": "1", "index.B": "20", "index.C": "100", "index.D": "2000"}}}}}')
+        self.assertEqual(result_tree_txt, '{"1": {"10": {"100": {"1000": {"AB.V": 0.1, "CD.V": 1.0, "shared.A": "1", "shared.B": "10", "shared.C": "100", "shared.D": "1000"}, "2000": {"AB.V": 0.1, "CD.V": 2.0, "shared.A": "1", "shared.B": "10", "shared.C": "100", "shared.D": "2000"}}}, "20": {"100": {"1000": {"AB.V": 0.2, "CD.V": 1.0, "shared.A": "1", "shared.B": "20", "shared.C": "100", "shared.D": "1000"}, "2000": {"AB.V": 0.2, "CD.V": 2.0, "shared.A": "1", "shared.B": "20", "shared.C": "100", "shared.D": "2000"}}}}}')
 
     def test_2filocs_second_is_empty(self):
         leaf1_loc = filoc_json(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
@@ -114,12 +114,12 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.C", "index.D")
+        result_tree = pivot(result, "shared.C", "shared.D")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, '{"100": {"1000": {"CD.V": 1.0, "index.C": "100", "index.D": "1000"}, "2000": {"CD.V": 2.0, "index.C": "100", "index.D": "2000"}}}')
+        self.assertEqual(result_tree_txt, '{"100": {"1000": {"CD.V": 1.0, "shared.C": "100", "shared.D": "1000"}, "2000": {"CD.V": 2.0, "shared.C": "100", "shared.D": "2000"}}}')
 
     def test_2filocs_first_is_empty(self):
         leaf1_loc = filoc_json(f'{self.test_dir}/1/{{A}}/{{B}}/leaf1.json', writable=True)
@@ -131,12 +131,12 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.A", "index.B")
+        result_tree = pivot(result, "shared.A", "shared.B")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, '{"1": {"10": {"AB.V": 0.1, "index.A": "1", "index.B": "10"}, "20": {"AB.V": 0.2, "index.A": "1", "index.B": "20"}}}'
+        self.assertEqual(result_tree_txt, '{"1": {"10": {"AB.V": 0.1, "shared.A": "1", "shared.B": "10"}, "20": {"AB.V": 0.2, "shared.A": "1", "shared.B": "20"}}}'
         )
 
     def test_2filocs_filter_on_first_locpath(self):
@@ -155,20 +155,20 @@ class TestMultiloc_TwoLevels(unittest.TestCase):
 
         result = sut_loc.read_contents()
 
-        result_tree = pivot(result, "index.node_id", "index.leaf_id")
+        result_tree = pivot(result, "shared.node_id", "shared.leaf_id")
         result_tree_txt = json.dumps(result_tree, sort_keys=True)
         print(result_tree_txt)
 
         self.maxDiff = 2000
-        self.assertEquals(result_tree_txt, 
+        self.assertEqual(result_tree_txt, 
             '{'
             '"1": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 1, "leaf1.value": 0.1, "leaf2.value": 1.0}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 1, "leaf1.value": 0.2, "leaf2.value": 2.0}'
+              '"1": {"leaf1.value": 0.1, "leaf2.value": 1.0, "shared.leaf_id": 1, "shared.node_id": 1}, '
+              '"2": {"leaf1.value": 0.2, "leaf2.value": 2.0, "shared.leaf_id": 2, "shared.node_id": 1}'
             '}, '
             '"2": {'
-              '"1": {"index.leaf_id": 1, "index.node_id": 2, "leaf1.value": 1.1, "leaf2.value": 11.0}, '
-              '"2": {"index.leaf_id": 2, "index.node_id": 2, "leaf1.value": 1.2, "leaf2.value": 12.0}'
+              '"1": {"leaf1.value": 1.1, "leaf2.value": 11.0, "shared.leaf_id": 1, "shared.node_id": 2}, '
+              '"2": {"leaf1.value": 1.2, "leaf2.value": 12.0, "shared.leaf_id": 2, "shared.node_id": 2}'
               '}'
             '}'
         )

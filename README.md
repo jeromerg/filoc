@@ -31,7 +31,7 @@ Filoc is highly customizable: You can work with any type of files (builtins: *js
 
 ## Use Cases (Jupyter Notebook)
 
-You can get a concrete and practical insight of filoc in the following show-case notebooks:
+You can get a concrete and practical insight into filoc in the following show-case notebooks:
 
 [Machine Learning Workflow with filoc](https://htmlpreview.github.io/?https://github.com/jeromerg/filoc/blob/master/examples/machine_learning/example_ml.html)
 
@@ -241,7 +241,7 @@ df = mloc.read_contents()
 print(df)
 
 # OUTPUT
-#   index.country  index.company  index.year      contact.address   contact.phone finance.revenue
+#   shared.country  shared.company  shared.year      contact.address   contact.phone finance.revenue
 #   -------------  -------------  ---------- --------------------  -------------- ---------------
 # 0        France            OVH        2019              Roubaix    +33681906730        10256745
 # 1       Germany             DF        2019 Ismaning (by Munich)  +4989998288026        14578415
@@ -252,13 +252,13 @@ print(df)
 ```
 
 Filoc joins the data from the two *set of files* together. It uses the format placeholders from the format path as
-join keys, to match and join the rows together from the both *set of files*. The shared keys are prefixed by `'index.'` whereas the attributes found
+join keys, to match and join the rows together from the both *set of files*. The shared keys are prefixed by `'shared.'` whereas the attributes found
 in the files themselves are prefixed by the named of the filoc.
 
 In this example, we have set the finance filoc *writable*, so we can edit the dataframe and save back the result:
 
 ```python
-df.loc[ (df['index.year'] == 2019) & (df['index.company'] == 'OVH'), 'finance.revenue'] = 0
+df.loc[ (df['shared.year'] == 2019) & (df['shared.company'] == 'OVH'), 'finance.revenue'] = 0
 
 mloc.write_contents(df)
 ```

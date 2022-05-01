@@ -17,7 +17,7 @@ _default_encoding        = None
 _default_writable        = False
 _default_transaction     = True
 _default_timestamp_col   = None
-_default_join_level_name = 'index'
+_default_join_level_name = 'shared'
 _default_join_separator  = '.'
 
 
@@ -121,7 +121,7 @@ def filoc(
             Default: None. If not None, then filoc adds a column ``timestamp_col``, which contains the timestamp of the file the data entries comes from.
 
         join_level_name:
-            Default: ``'index'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
+            Default: ``'shared'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
             are used to join the sub-filocs together.
 
         join_separator:
@@ -210,7 +210,7 @@ def filoc(
             Default: None. If not None, then filoc adds a column ``timestamp_col``, which contains the timestamp of the file the data entries comes from.
 
         join_level_name:
-            Default: ``'index'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
+            Default: ``'shared'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
             are used to join the sub-filocs together.
 
         join_separator:

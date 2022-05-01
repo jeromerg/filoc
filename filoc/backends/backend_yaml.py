@@ -25,7 +25,7 @@ class YamlBackend(BackendContract):
     def read(self, fs: AbstractFileSystem, path: str, path_props : Props, constraints: Constraints) -> PropsList:
         """(see BackendContract contract) """
         with fs.open(path, encoding=self.encoding) as f:
-            return filter_and_coerce_loaded_file_content(path, yaml.load(f), path_props, constraints, self.is_singleton)
+            return filter_and_coerce_loaded_file_content(path, yaml.safe_load(f), path_props, constraints, self.is_singleton)
 
     def write(self, fs: AbstractFileSystem, path: str, props_list: PropsList) -> None:
         """(see BackendContract contract)"""

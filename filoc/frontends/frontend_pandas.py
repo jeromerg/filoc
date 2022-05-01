@@ -1,7 +1,7 @@
 """ Contains the default Pandas frontend implementation """
 import itertools
 import logging
-from collections import Collection, Mapping
+from typing import Collection, Mapping
 
 from pandas import DataFrame, Series
 

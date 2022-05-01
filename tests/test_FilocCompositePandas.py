@@ -30,10 +30,10 @@ class TestMultiloc(unittest.TestCase):
 
         # ACT 1
         mloc.write_contents(DataFrame([
-            {"index.simid": 1, "index.epid": 10, "hyp.a": 100, "res.b": 1000},
-            {"index.simid": 1, "index.epid": 20, "hyp.a": 200, "res.b": 2000},
-            {"index.simid": 2, "index.epid": 10, "hyp.a": 300, "res.b": 3000},
-            {"index.simid": 2, "index.epid": 20, "hyp.a": 400, "res.b": 4000},
+            {"hyp.a": 100, "res.b": 1000, "shared.simid": 1, "shared.epid": 10},
+            {"hyp.a": 200, "res.b": 2000, "shared.simid": 1, "shared.epid": 20},
+            {"hyp.a": 300, "res.b": 3000, "shared.simid": 2, "shared.epid": 10},
+            {"hyp.a": 400, "res.b": 4000, "shared.simid": 2, "shared.epid": 20},
         ]))
 
         wloc = FilocIO(self.path_fmt_hyp)
@@ -63,7 +63,7 @@ class TestMultiloc(unittest.TestCase):
         self.assertEqual(len(p), 2)
 
         self.assertEqual(
-            '[{"hyp.a": 100, "index.epid": 10, "index.simid": 1, "res.b": 1000}, {"hyp.a": 300, "index.epid": 10, "index.simid": 2, "res.b": 3000}]',
+            '[{"hyp.a": 100, "res.b": 1000, "shared.epid": 10, "shared.simid": 1}, {"hyp.a": 300, "res.b": 3000, "shared.epid": 10, "shared.simid": 2}]',
             json.dumps(p.to_dict(orient='records'), sort_keys=True))
 
 
