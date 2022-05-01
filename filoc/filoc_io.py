@@ -127,11 +127,15 @@ class FilocIO:
 
         # Get the root folder: the last folder, that is not variable
         self._root_folder = self._locpath.split("{")[0] 
-        self._root_folder = self._fs.sep.join((self._root_folder + "dummy_to_ensure_subfolder").split(self._fs.sep)[:-1])  
+        self._root_folder = self.fs.sep.join((self._root_folder + "dummy_to_ensure_subfolder").split(self.fs.sep)[:-1])  
 
         # parse library contains the _named_fields property, which provides us with the set of placeholder names
         # noinspection PyProtectedMember
         self._path_props  = set(self._path_parser._named_fields)  # type: Set[str]
+
+    @property
+    def fs(self) -> AbstractFileSystem:
+        return self._fs
 
     # noinspection PyDefaultArgument
     def parse_path_properties(self, path: str) -> Dict[str, Any]:
@@ -206,7 +210,7 @@ class FilocIO:
             The list of valid and existing paths fulfilling the provided constraints
         """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        paths = self._fs.glob(self.render_glob_path(constraints))
+        paths = self.fs.glob(self.render_glob_path(constraints))
         return sort_natural(paths)
 
     def list_paths_and_props(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[Tuple[str, Dict[str, Any]]]:
@@ -234,7 +238,7 @@ class FilocIO:
             True if the path exists, False elsewhere
         """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        return self._fs.exists(self.render_path(constraints))
+        return self.fs.exists(self.render_path(constraints))
 
     def open(
             self,
@@ -266,9 +270,9 @@ class FilocIO:
         dirname = os.path.dirname(path)
 
         if is_writing:
-            self._fs.makedirs(dirname, exist_ok=True)
+            self.fs.makedirs(dirname, exist_ok=True)
 
-        return self._fs.open(path, mode, block_size, cache_options, **kwargs)
+        return self.fs.open(path, mode, block_size, cache_options, **kwargs)
 
     # noinspection PyDefaultArgument
     def delete(self, constraints : Optional[Constraints] = {}, dry_run=False):
@@ -293,10 +297,10 @@ class FilocIO:
             log.info(f'{dry_run_log_prefix}Deleting "{path}"')
             if dry_run:
                 continue
-            if self._fs.isfile(path):
-                self._fs.delete(path)
-            elif self._fs.isdir(path):
-                self._fs.rm(path, recursive=True)
+            if self.fs.isfile(path):
+                self.fs.delete(path)
+            elif self.fs.isdir(path):
+                self.fs.rm(path, recursive=True)
             else:
                 raise ValueError(f'path is neither a direction nor a file: "{path}"')
         log.info(f'{dry_run_log_prefix}Deleted {len(path_to_delete)} files with path_props "{constraints}"')
