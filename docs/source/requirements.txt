@@ -1,6 +1,5 @@
 frozendict
 fsspec
-orderedset
 pandas
 parse
 pyyaml

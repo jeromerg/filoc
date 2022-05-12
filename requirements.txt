@@ -7,7 +7,6 @@ ipykernel
 keras
 matplotlib
 numpy
-orderedset
 pandas
 parse
 pytest

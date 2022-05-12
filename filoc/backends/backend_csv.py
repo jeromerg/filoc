@@ -4,7 +4,6 @@ from csv import DictWriter, DictReader
 from typing import Dict, Any
 
 from fsspec import AbstractFileSystem
-from orderedset import OrderedSet
 
 from filoc.contract import PropsList, BackendContract, Constraints, Props
 from filoc.utils import filter_and_coerce_loaded_file_content
@@ -37,11 +36,17 @@ class CsvBackend(BackendContract):
         """(see BackendContract contract)"""
         fs.makedirs(os.path.dirname(path), exist_ok=True)
 
-        fieldnames = OrderedSet()
+        # once used orderedset library, but upgrade to python 3.10 failed
+        fieldnames_set  = set()
+        fieldnames_list = []
         for props in props_list:
-            fieldnames |= props.keys()
+            for k in props.keys():
+                if k not in fieldnames_set:
+                    fieldnames_set.add(k)
+                    fieldnames_list.append(k)
+
 
         with fs.open(path, 'w', encoding=self.encoding) as f:
-            writer = DictWriter(f, fieldnames)
+            writer = DictWriter(f, fieldnames_list)
             writer.writeheader()
             writer.writerows(props_list)
