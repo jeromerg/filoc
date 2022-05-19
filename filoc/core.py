@@ -346,6 +346,8 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         log.info(f'Read content for {path}')
         return content
 
+    def __str__(self) -> str:
+        return f"FilocSingle('{self.locpath}')"
 
 # ------------------
 # FilocCompositeBase
@@ -501,3 +503,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
     def lock_force_release(self):
         """ See ``Filoc`` contract """
         raise NotImplementedError("TODO: Implement")
+
+    def __str__(self) -> str:
+        list_locpaths = ",".join([f"{k}: '{f._locpath}'" for k,f in self.filoc_by_name.items()])
+        return f"""FilocComposite({list_locpaths})"""
