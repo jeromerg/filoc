@@ -14,7 +14,7 @@ pyyaml
 requests
 seaborn
 setuptools
-sklearn
+scikit-learn
 tensorflow 
 torch
 torchvision
