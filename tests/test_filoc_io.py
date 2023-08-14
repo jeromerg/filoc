@@ -65,7 +65,7 @@ class TestFilocIO(unittest.TestCase):
         p = loc.list_paths(epid=12)
         self.assertListEqual(p, [])
 
-    def test_find_paths_and_path_props(self):
+    def test_list_paths_and_props(self):
         loc = FilocIO(self.path_fmt)
         touch_file(loc.render_path(simid=1, epid=10))
         touch_file(loc.render_path(simid=1, epid=20))
@@ -85,6 +85,36 @@ class TestFilocIO(unittest.TestCase):
         ])
 
         p = loc.list_paths_and_props(epid=12)
+        self.assertListEqual(p, [])
+
+    def test_list_paths_and_props_and_detail(self):
+        loc = FilocIO(self.path_fmt)
+        touch_file(loc.render_path(simid=1, epid=10))
+        touch_file(loc.render_path(simid=1, epid=20))
+        touch_file(loc.render_path(simid=2, epid=10))
+        touch_file(loc.render_path(simid=2, epid=20))
+
+        p = loc.list_paths_and_props_and_detail(simid=1)
+        p0and1 = [ (i[0], i[1]) for i in p ]
+        self.assertListEqual(p0and1, [
+            (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
+            (rf"{self.test_dir}/simid=1/epid=20/hyperparameters.json", {'simid': 1, 'epid': 20}),
+        ])
+        for _, _, detail in p:
+            self.assertIn('name', detail)
+            self.assertIn('size', detail)
+
+        p = loc.list_paths_and_props_and_detail(epid=10)
+        p0and1 = [ (i[0], i[1]) for i in p ]
+        self.assertListEqual(p0and1, [
+            (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
+            (rf"{self.test_dir}/simid=2/epid=10/hyperparameters.json", {'simid': 2, 'epid': 10}),
+        ])
+        for _, _, detail in p:
+            self.assertIn('name', detail)
+            self.assertIn('size', detail)
+        
+        p = loc.list_paths_and_props_and_detail(epid=12)
         self.assertListEqual(p, [])
 
     def test_exists(self):

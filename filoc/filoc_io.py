@@ -28,10 +28,15 @@ _re_path_placeholder  = re.compile(r'({[^}]+})')
 # -------
 # Helpers
 # -------
+def natural_sort_key(s: str) -> Tuple[Any, ...]:
+    """ Return a tuple of string and int, to be used as key for natural sort. Floating number are currently supported but cannot be compared to integers (missing dot separator)"""
+    # TODO: support mix of int and float
+    return [int(part) if part.isdigit() else part for part in _re_natural.split(s)]
+
+
 def sort_natural(li: List[str]) -> List[str]:
     """ Perform natural sort of string containing numbers. Floating number are currently supported but cannot be compared to integers (missing dot separator)"""
-    # TODO: support mix of int and float
-    return sorted(li, key=lambda s: [int(part) if part.isdigit() else part for part in _re_natural.split(s)])
+    return sorted(li, key=natural_sort_key)
 
 
 def coerce_nullable_mapping(d) -> Optional[Mapping[str, Any]]:
@@ -210,8 +215,7 @@ class FilocIO:
             The list of valid and existing paths fulfilling the provided constraints
         """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        paths = self.fs.glob(self.render_glob_path(constraints))
-        return sort_natural(paths)
+        return sort_natural(self.fs.glob(self.render_glob_path(constraints)))
 
     def list_paths_and_props(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[Tuple[str, Dict[str, Any]]]:
         """
@@ -224,8 +228,24 @@ class FilocIO:
             A list of tuples containing for each valid path, the path and the list of related placeholder values
         """
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        paths = self.list_paths(constraints)
+        paths = sort_natural(self.fs.glob(self.render_glob_path(constraints)))
         return [(p, self.parse_path_properties(p)) for p in paths]
+
+    def list_paths_and_props_and_detail(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[Tuple[str, Dict[str, Any], Dict[str, Any]]]:
+        """
+        Gets the list of all existing and valid paths fulfilling the provided constraints, along with the list of associated placeholder values,
+             along with the detail of the path as provided by the underlying fsspec filesystem (e.g. size, type, etc.)
+        Args:
+            constraints: The equality constraints applied to the ``locpath`` placeholders
+            **constraints_kwargs: The equality constraints applied to the ``locpath`` placeholders
+
+        Returns:
+            A list of tuples containing for each valid path, the path and the list of related placeholder values
+        """
+        constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
+        detail_by_path = self.fs.glob(self.render_glob_path(constraints), detail=True)        
+        result = [(path, self.parse_path_properties(path), detail) for path, detail in detail_by_path.items()]
+        return sorted(result, key=lambda x: natural_sort_key(x[0]))
 
     def exists(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> bool:
         """
