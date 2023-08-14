@@ -31,6 +31,12 @@ class TestFilocIO(unittest.TestCase):
         self.assertEqual(props['simid'], 12)
         self.assertEqual(props['epid'], 102)
 
+    def test_get_path_properties_empty_value(self):
+        loc = FilocIO(self.test_dir + "/a={v}")
+        props = loc.parse_path_properties(self.test_dir + "/a=")
+        self.assertEqual(len(props), 1)
+        self.assertEqual(props['v'], '')
+
     def test_get_path(self):
         loc = FilocIO(self.path_fmt)
         path1 = loc.render_path(simid=12, epid=102)

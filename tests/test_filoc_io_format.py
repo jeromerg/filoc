@@ -51,6 +51,13 @@ class TestFilocIO_format(unittest.TestCase):
         p = loc.list_paths_and_props(value=3.5)
         self.assertListEqual(p, [ (rf"{self.test_dir}/3.5", {'value': 3.5})])
 
+    def test_float_parser_scientific_notation(self):
+        locpath = self.test_dir + r'/{value:g}'
+        loc = FilocIO(locpath)
+        props = loc.parse_path_properties(self.test_dir + "/3E-10")
+        self.assertEqual(len(props), 1)
+        self.assertEqual(props['value'], 3E-10)
+
 
 if __name__ == '__main__':
     unittest.main()

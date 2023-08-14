@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Mapping, Optional, Set
 from typing import Tuple
 
 import fsspec
-import parse
+from filoc.fmt_parser import FmtParser
 from fsspec import AbstractFileSystem
 from fsspec.core import OpenFile
 
@@ -128,7 +128,7 @@ class FilocIO:
                 self._locpath = self._locpath.replace(ersatz, elt)
 
         self._fs = open_file.fs  # type: AbstractFileSystem
-        self._path_parser = parse.compile(self._locpath)  # type: parse.Parser
+        self._path_parser = FmtParser(self._locpath)
 
         # Get the root folder: the last folder, that is not variable
         self._root_folder = self._locpath.split("{")[0] 
@@ -136,7 +136,7 @@ class FilocIO:
 
         # parse library contains the _named_fields property, which provides us with the set of placeholder names
         # noinspection PyProtectedMember
-        self._path_props  = set(self._path_parser._named_fields)  # type: Set[str]
+        self._path_props  = set(self._path_parser.field_names)
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -153,7 +153,7 @@ class FilocIO:
             A dictionary containing the "placeholder name" -> value mapping
         """
         try:
-            return self._path_parser.parse(path).named
+            return self._path_parser.parse(path)
         except Exception as e:
             raise ValueError(f'Could not parse {path} with {self._locpath} parser: {e}')
 

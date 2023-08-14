@@ -167,12 +167,13 @@ loc.write_content(series)
 
 ## Typed placeholders
 
-A format placeholder can be typed to map to a specific python type. Filoc leverages the conventional
-[format string] syntax. Useful and tested are mappings to integer and float:
+A format placeholder can be typed to map to a specific python type. Filoc use a minimal subset of
+[format string] syntax:
 
 ```python
-'{value:d}'  # '123' maps value to integer 123
-'{value:g}'  # '3.5' maps value to float 3.5
+'{value}'    # 'abc' is parsed to string 'abc'
+'{value:d}'  # '-123' is parsed to integer -123
+'{value:g}'  # '3.5' is parsed to float 3.5
 ```
 
 ## Local and remote files

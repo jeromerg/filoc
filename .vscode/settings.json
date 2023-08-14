@@ -22,5 +22,14 @@
     },
     "python.linting.enabled": true,
     "python.languageServer": "Pylance",
-    "python.pythonPath": "C:\\Python39\\python.exe"
+    "python.pythonPath": "C:\\Python39\\python.exe",
+    "cSpell.words": [
+        "elts",
+        "endpos",
+        "Filoc",
+        "fsspec",
+        "korig",
+        "subkey",
+        "subkeys"
+    ]
 }
