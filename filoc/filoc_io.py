@@ -198,7 +198,8 @@ class FilocIO:
 
         glob_path = self._locpath
         for undefined_key in undefined_keys:
-            glob_path = re.sub(r'{' + undefined_key + r'(?::[^}]*)?}', '?*', glob_path)
+            # replace `{undefined_key:any_optional_formatting}` by `*`
+            glob_path = re.sub(r'{' + undefined_key + r'(?::[^}]*)?}', '*', glob_path)
 
         # finally format
         glob_path = glob_path.format(**path_values)

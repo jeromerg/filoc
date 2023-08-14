@@ -40,7 +40,7 @@ class TestFilocIO(unittest.TestCase):
     def test_get_glob_path(self):
         loc = FilocIO(self.path_fmt)
         path1 = loc.render_glob_path(epid=102)
-        self.assertEqual(path1, rf"{self.test_dir}/simid=?*/epid=102/hyperparameters.json")
+        self.assertEqual(path1, rf"{self.test_dir}/simid=*/epid=102/hyperparameters.json")
         # Todo: test other formattings: float, string
 
     def test_find_paths(self):
