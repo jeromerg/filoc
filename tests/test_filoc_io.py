@@ -100,7 +100,7 @@ class TestFilocIO(unittest.TestCase):
         touch_file(loc.render_path(simid=2, epid=10))
         touch_file(loc.render_path(simid=2, epid=20))
 
-        p = loc.list_paths_and_props_and_detail(simid=1)
+        p = loc.list_paths_and_props_and_meta(simid=1)
         p0and1 = [ (i[0], i[1]) for i in p ]
         self.assertListEqual(p0and1, [
             (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
@@ -110,7 +110,7 @@ class TestFilocIO(unittest.TestCase):
             self.assertIn('name', detail)
             self.assertIn('size', detail)
 
-        p = loc.list_paths_and_props_and_detail(epid=10)
+        p = loc.list_paths_and_props_and_meta(epid=10)
         p0and1 = [ (i[0], i[1]) for i in p ]
         self.assertListEqual(p0and1, [
             (rf"{self.test_dir}/simid=1/epid=10/hyperparameters.json", {'simid': 1, 'epid': 10}),
@@ -120,7 +120,7 @@ class TestFilocIO(unittest.TestCase):
             self.assertIn('name', detail)
             self.assertIn('size', detail)
         
-        p = loc.list_paths_and_props_and_detail(epid=12)
+        p = loc.list_paths_and_props_and_meta(epid=12)
         self.assertListEqual(p, [])
 
     def test_exists(self):

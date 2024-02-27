@@ -32,12 +32,12 @@ class LockException(Exception):
 
 
 class _RunningCache(NamedTuple):
-    key : Props  # key-values expected by cache_locpath
+    path : str  # cache file path
     cache_by_file_path_props : Dict[ReadOnlyProps, Dict[str, Any]]  # key-values expected by (this) locpath props
 
 
 # TODO: Profile and apply intern(key) to reduce footprint of intermediate model dictionaries
-# TODO Feature: optimistic locking for long editing (use timestamp_col)
+# TODO Feature: optimistic locking for long editing (use explicit metadata)
 # TODO Feature: Backup on write if file already exists (think of possibility to use locpath with $version and $timestamp placeholder)
 
 # ---------
@@ -49,15 +49,16 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
     # noinspection PyDefaultArgument
     def __init__(
             self,
-            locpath       : str                                  ,
-            writable      : bool                                 ,
-            transaction   : bool                                 ,
-            frontend      : FrontendContract[TContent, TContents],
-            backend       : BackendContract                      ,
-            cache_locpath : str                                  ,
-            cache_fs      : Optional[AbstractFileSystem]         ,
-            timestamp_col : str                                  ,
-            fs            : Optional[AbstractFileSystem]         ,
+            locpath            : str                                  ,
+            writable           : bool                                 ,
+            transaction        : bool                                 ,
+            frontend           : FrontendContract[TContent, TContents],
+            backend            : BackendContract                      ,
+            cache_locpath      : str                                  ,
+            cache_fs           : Optional[AbstractFileSystem]         ,
+            cache_version_prop : Optional[str]                        ,
+            meta               : Dict[str, str]                       ,
+            fs                 : Optional[AbstractFileSystem]         ,
     ):
         """
         if cache_locpath is relative, then it will be relative to result_locpath
@@ -71,7 +72,9 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         self._cache_loc = None
         if cache_locpath is not None:
             self._cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
-        self._timestamp_col = timestamp_col
+
+        self._cache_version_prop = cache_version_prop
+        self._meta_mapping = meta
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
@@ -196,74 +199,83 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
 
         running_cache = None  # type:Optional[_RunningCache]
 
-        paths_and_file_path_props  = self.list_paths_and_props(constraints)
-        log.info(f'Found {len(paths_and_file_path_props)} files to read in locpath {self._locpath} fulfilling props {constraints}')
+        if len(self._meta_mapping) == 0:
+            l = self.list_paths_and_props(constraints)
+            path_list, path_props_list = zip(*l) if len(l) > 0 else ([], [])
+            meta_props_list = [None for _ in range(len(path_list))]
+        else:
+            l = self.list_paths_and_props_and_meta(constraints, self._meta_mapping)
+            path_list, path_props_list, meta_props_list = zip(*l) if len(l) > 0 else ([], [], [])
 
-        for (path, file_path_props) in paths_and_file_path_props:
-            path_props_hashable = frozendict(file_path_props.items())
+        log.info(f'Found {len(path_list)} files to read in locpath {self._locpath} fulfilling props {constraints}')
 
-            try:
-                f_timestamp = self.fs.modified(path)
-            except NotImplementedError:
-                # fsspec implementation, that do not implement modified, are assumed to be read-only (example: github)
-                f_timestamp = None
-            except FileNotFoundError:
-                f_timestamp = None
-                
-            # renew cache, on cache file change
+        if self._cache_loc:
+            cache_path_list = [
+                self._cache_loc.render_path(path_props)
+                for path_props
+                in path_props_list
+            ]
+        else:
+            cache_path_list = [None for _ in range(len(path_list))]
+
+        # sorted by cache file path to optimize cache file access
+        for (path, path_props, meta_props, cache_path) in sorted(zip(path_list, path_props_list, meta_props_list, cache_path_list), key=lambda tupl: tupl[3] if tupl[3] is not None else ''):
+            path_props_hashable = frozendict(path_props.items())
+
             if self._cache_loc:
-                path_cache_path       = self._cache_loc.render_path(file_path_props)
-                cache_file_path_props = self._cache_loc.parse_path_properties(path_cache_path)
-
-                if running_cache is not None and running_cache.key == cache_file_path_props:
+                if running_cache is not None and running_cache.path == cache_path:
                     pass  # cache file is always the correct one : do nothing, keep this cache file opened
                 else:
-                    if running_cache is not None and running_cache.key != cache_file_path_props:
+                    if running_cache is not None and running_cache.path != cache_path:
                         # flush previous cache, if exists
-                        if running_cache.key:
-                            with self._cache_loc.open(running_cache.key, 'wb') as f:
+                        if running_cache.path:
+                            with self._cache_loc.fs.open(running_cache.path, 'wb') as f:
                                 pickle.dump(running_cache.cache_by_file_path_props, f, )
 
                     # now prepare new cache file
-                    if self._cache_loc.exists(cache_file_path_props):
-                        with self._cache_loc.open(cache_file_path_props, 'rb') as f:
-                            running_cache = _RunningCache(cache_file_path_props, pickle.load(f))
+                    if self._cache_loc.fs.exists(cache_path):
+                        with self._cache_loc.fs.open(cache_path, 'rb') as f:
+                            running_cache = _RunningCache(cache_path, pickle.load(f))
                     else:
-                        running_cache = _RunningCache(cache_file_path_props, dict())
+                        running_cache = _RunningCache(cache_path, dict())
 
             # check whether cache entry is still valid
             if self._cache_loc:
                 if path_props_hashable in running_cache.cache_by_file_path_props:
                     path_cached_entry = running_cache.cache_by_file_path_props[path_props_hashable]
-                    if path_cached_entry['timestamp'] == f_timestamp:
+                    path_cached_entry_version = path_cached_entry.get(self._cache_version_prop, None)
+                    meta_version = meta_props.get(self._cache_version_prop, None) if meta_props is not None else None
+                    if path_cached_entry_version is not None and meta_version is not None and path_cached_entry_version == meta_version:
                         log.info(f'Path data cached: "{path}"')
                         result.extend(path_cached_entry['props_list'].copy())  # copy from cache
                         continue
                     else:
-                        log.info(f'Cache out of date for path "{path}"')
+                        log.info(f'Cache out of date for path "{path}" or no version property found in metadata. Reading directly.')
 
-            # cache is not valid: read path directly!
+            # FROM HERE ON: cache is not valid: read path directly!
 
-            # props from reader
-            props_list = self._read_path(path, file_path_props, constraints)    # type: PropsList
+            # props from reader (file content from backend)
+            content_props_list = self._read_path(path, path_props, constraints)    # type: PropsList
 
             # augment read props with additional external data
-            for props in props_list:
-                # -> file timestamp
-                if self._timestamp_col:
-                    props[self._timestamp_col] = f_timestamp
-                # -> path_props
-                props.update(file_path_props)
+            for content_path_props in content_props_list:
+                content_path_props.update(path_props)
+                if meta_props is not None:
+                    content_path_props.update(meta_props)
 
             # add to result
-            result.extend(props_list)
+            result.extend(content_props_list)
+
             # add to cache
             if self._cache_loc:
-                running_cache.cache_by_file_path_props[path_props_hashable] = { 'timestamp': f_timestamp, 'props_list' : props_list.copy()}
+                running_cache.cache_by_file_path_props[path_props_hashable] = {
+                    'version': meta_props.get(self._cache_version_prop, None) if meta_props is not None else None,
+                    'props_list' : content_props_list.copy()
+                }
 
         # flush last used cache
         if running_cache:
-            with self._cache_loc.open(running_cache.key, 'wb') as f:
+            with self._cache_loc.fs.open(running_cache.path, 'wb') as f:
                 pickle.dump(running_cache.cache_by_file_path_props, f)
 
         return result
@@ -335,7 +347,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         for (k, v) in keyvalues.items():
             if k in self._path_props:
                 path_props[k] = v
-            elif k == self._timestamp_col:
+            elif k == self._meta_mapping:
                 timestamp = keyvalues[k]
             else:
                 other_props[k] = v

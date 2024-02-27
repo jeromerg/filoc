@@ -8,7 +8,7 @@ custom frontends and backends need to implement.
 # -------------
 import logging
 from abc import ABC, abstractmethod
-from typing import TypeVar, Any, List, Generic, Optional, Mapping, Dict, Collection
+from typing import TypeVar, Any, List, Generic, Optional, Mapping, Dict, Collection, Union
 from fsspec import AbstractFileSystem
 
 # Literal is python 3.8 feature, but filoc works from python 3.6 upward
@@ -33,6 +33,9 @@ BuiltinFrontends      = Literal['json', 'pandas'] if Literal else str
 
 BuiltinBackends       = Literal['path', 'json', 'yaml', 'csv', 'pickle'] if Literal else str
 """Shortcut used to designate filoc preset backends: 'meta' is a special backend that does not read the file contents but only the file metadata"""
+
+MetaOptions           = Union[None, bool, str, List[str], Mapping[str, str]]
+"""Options to pass to the `meta` parameters. Determine which file metadata to add as property: None: None, True: all, False: none, str or list of str: explicit list of metadata, Mapping: explicit mapping of metadata (used to renamed metadata at once)"""
 
 Constraint           = Any
 """key-values describing constraints to apply while filtering data. Currently only equality is supported."""
@@ -290,3 +293,17 @@ class Filoc(Generic[TContent, TContents], ABC):
             dry_run: If True, then only simulate the writing. The default value is False.
         """
         raise NotImplementedError('Abstract')
+
+
+def get_meta_mapping(meta_options: MetaOptions) -> Dict[str, str]:
+    if meta_options is None:
+        return dict()
+    elif isinstance(meta_options, str):
+        return {meta_options: meta_options}
+    elif isinstance(meta_options, list):
+        return {meta_option: meta_option for meta_option in meta_options}
+    elif isinstance(meta_options, dict):
+        return meta_options
+    else:
+        raise ValueError(f'Unsupported meta_options type: {type(meta_options)}')
+

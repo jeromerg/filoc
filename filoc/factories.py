@@ -7,7 +7,8 @@ from fsspec.spec import AbstractFileSystem
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from filoc.contract import BuiltinFrontends, Filoc, BackendContract, FrontendContract, BuiltinBackends
+from filoc.contract import BuiltinFrontends, Filoc, BackendContract, FrontendContract, BuiltinBackends, MetaOptions, \
+    get_meta_mapping
 from filoc.core import FilocSingle, FilocComposite
 
 _default_frontend        = 'pandas'
@@ -16,7 +17,7 @@ _default_singleton       = True
 _default_encoding        = None
 _default_writable        = False
 _default_transaction     = True
-_default_timestamp_col   = None
+_default_meta            = None
 _default_join_level_name = 'shared'
 _default_join_separator  = '.'
 
@@ -54,19 +55,20 @@ def _get_backend(backend : Union[BuiltinBackends, BackendContract], is_singleton
 
 @overload
 def filoc(
-        locpath          : str,
-        frontend         : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
-        backend          : Union[BuiltinBackends, BackendContract]   = _default_backend,
-        singleton        : bool                                      = _default_singleton,
-        encoding         : Optional[str]                             = _default_encoding,
-        writable         : Optional[bool]                            = _default_writable,
-        transaction      : Optional[bool]                            = _default_transaction,
-        cache_locpath    : Optional[str]                             = None,
-        cache_fs         : Optional[AbstractFileSystem]              = None,
-        timestamp_col    : Optional[str]                             = _default_timestamp_col,
-        join_level_name  : Optional[str]                             = _default_join_level_name,
-        join_separator   : Optional[str]                             = _default_join_separator,
-        fs               : Optional[AbstractFileSystem]              = None,
+        locpath            : str,
+        frontend           : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
+        backend            : Union[BuiltinBackends, BackendContract]   = _default_backend,
+        singleton          : bool                                      = _default_singleton,
+        encoding           : Optional[str]                             = _default_encoding,
+        writable           : Optional[bool]                            = _default_writable,
+        transaction        : Optional[bool]                            = _default_transaction,
+        cache_locpath      : Optional[str]                             = None,
+        cache_fs           : Optional[AbstractFileSystem]              = None,
+        cache_version_prop : Optional[str]                             = None,
+        meta               : MetaOptions                               = _default_meta,
+        join_level_name    : Optional[str]                             = _default_join_level_name,
+        join_separator     : Optional[str]                             = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]              = None,
 ) -> FilocSingle:
     """
     Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to the *set of files*.
@@ -121,8 +123,17 @@ def filoc(
             Default: None. Allows to provide a custom instance of fsspec file system for the cache files defined by ``cache_locpath``. This may be 
             required, if the protocol used in ``cache_locpath`` needs to be configured or fine-tuned (ex: ``ftp://``).
 
-        timestamp_col:
-            Default: None. If not None, then filoc adds a column ``timestamp_col``, which contains the timestamp of the file the data entries comes from.
+        cache_version_prop:
+            Default: None. Allows to provide a property name from frontend object (ex: DataFrame) that is used to check the version of the cache.
+            meta must contain `cache_version_prop` key, that maps to a file metadata property (i.e. 'mtime', 'etag', 'md5'...).
+            If the cache version is different from the version of the data model, then the cache is invalidated and reloaded.
+
+        meta:
+            Default: None. Adds file metadata as property/column to the result.
+            If None or False, no metadata is added.
+            If True: all metadata are added (flattened with pandas normalize function).
+            If a string or a list of strings: only the metadata with the given keys are added.
+            If a mapping: A key is the resulting name and the value is the original metadata key.
 
         join_level_name:
             Default: ``'shared'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
@@ -144,19 +155,20 @@ def filoc(
 
 @overload
 def filoc(
-        locpath          : Mapping[str, Union[str, Filoc]],
-        frontend         : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
-        backend          : Union[BuiltinBackends, BackendContract]   = _default_backend,
-        singleton        : bool                                      = _default_singleton,
-        encoding         : Optional[str]                             = _default_encoding,
-        writable         : Optional[bool]                            = _default_writable,
-        transaction      : Optional[bool]                            = _default_transaction,
-        cache_locpath    : Optional[str]                             = None,
-        cache_fs         : Optional[AbstractFileSystem]              = None,
-        timestamp_col    : Optional[str]                             = _default_timestamp_col,
-        join_level_name  : Optional[str]                             = _default_join_level_name,
-        join_separator   : Optional[str]                             = _default_join_separator,
-        fs               : Optional[AbstractFileSystem]              = None,
+        locpath            : Mapping[str, Union[str, Filoc]],
+        frontend           : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
+        backend            : Union[BuiltinBackends, BackendContract]   = _default_backend,
+        singleton          : bool                                      = _default_singleton,
+        encoding           : Optional[str]                             = _default_encoding,
+        writable           : Optional[bool]                            = _default_writable,
+        transaction        : Optional[bool]                            = _default_transaction,
+        cache_locpath      : Optional[str]                             = None,
+        cache_fs           : Optional[AbstractFileSystem]              = None,
+        cache_version_prop : Optional[str]                             = None,
+        meta               : MetaOptions                               = _default_meta,
+        join_level_name    : Optional[str]                             = _default_join_level_name,
+        join_separator     : Optional[str]                             = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]              = None,
 ) -> FilocComposite:
     """
     Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to the *set of files*.
@@ -211,8 +223,16 @@ def filoc(
             Default: None. Allows to provide a custom instance of fsspec file system for the cache files defined by ``cache_locpath``. This may be 
             required, if the protocol used in ``cache_locpath`` needs to be configured or fine-tuned (ex: ``ftp://``).
 
-        timestamp_col:
-            Default: None. If not None, then filoc adds a column ``timestamp_col``, which contains the timestamp of the file the data entries comes from.
+        cache_version_prop:
+            Default: None. Allows to provide a property name from frontend object (ex: DataFrame) that is used to check the version of the cache.
+            meta must contain `cache_version_prop`
+
+        meta:
+            Default: None. Adds file metadata as property/column to the result.
+            If None or False, no metadata is added.
+            If True: all metadata are added (flattened with pandas normalize function).
+            If a string or a list of strings: only the metadata with the given keys are added.
+            If a mapping: A key is the resulting name and the value is the original metadata key.
 
         join_level_name:
             Default: ``'shared'``. This option applies only to composite filocs and allows to provide an alternative prefix to the "index columns", the columns that 
@@ -233,19 +253,20 @@ def filoc(
 
 
 def filoc(
-        locpath          : Union[str, Mapping[str, Union[str, Filoc]]],
-        frontend         : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
-        backend          : Union[BuiltinBackends, BackendContract]   = _default_backend,
-        singleton        : bool                                      = _default_singleton,
-        encoding         : Optional[str]                             = _default_encoding,
-        writable         : Optional[bool]                            = _default_writable,
-        transaction      : Optional[bool]                            = _default_transaction,
-        cache_locpath    : Optional[str]                             = None,
-        cache_fs         : Optional[AbstractFileSystem]              = None,
-        timestamp_col    : Optional[str]                             = _default_timestamp_col,
-        join_level_name  : Optional[str]                             = _default_join_level_name,
-        join_separator   : Optional[str]                             = _default_join_separator,
-        fs               : Optional[AbstractFileSystem]              = None,
+        locpath            : Union[str, Mapping[str, Union[str, Filoc]]],
+        frontend           : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
+        backend            : Union[BuiltinBackends, BackendContract]   = _default_backend,
+        singleton          : bool                                      = _default_singleton,
+        encoding           : Optional[str]                             = _default_encoding,
+        writable           : Optional[bool]                            = _default_writable,
+        transaction        : Optional[bool]                            = _default_transaction,
+        cache_locpath      : Optional[str]                             = None,
+        cache_fs           : Optional[AbstractFileSystem]              = None,
+        cache_version_prop : Optional[str]                             = None,
+        meta               : MetaOptions                               = _default_meta,
+        join_level_name    : Optional[str]                             = _default_join_level_name,
+        join_separator     : Optional[str]                             = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]              = None,
 ) -> Filoc:
     frontend_impl = _get_frontend(frontend)
     backend_impl  = _get_backend(backend, singleton, encoding)
@@ -257,18 +278,19 @@ def filoc(
             if isinstance(sub_filoc, str):
                 sub_locpath = sub_filoc
                 filoc_instance = filoc(
-                    locpath         = sub_locpath    ,
-                    frontend        = frontend       ,
-                    backend         = backend        ,
-                    singleton       = singleton      ,
-                    writable        = writable       ,
-                    transaction     = transaction    ,
-                    cache_locpath   = None           ,  # Remark: currently cache is not forwarded to sub-filocs
-                    cache_fs        = None           ,  # Remark: currently cache is not forwarded to sub-filocs
-                    timestamp_col   = timestamp_col  ,
-                    join_level_name = join_level_name,
-                    join_separator  = join_separator ,
-                    fs              = fs             ,
+                    locpath            = sub_locpath    ,
+                    frontend           = frontend       ,
+                    backend            = backend        ,
+                    singleton          = singleton      ,
+                    writable           = writable       ,
+                    transaction        = transaction    ,
+                    cache_locpath      = None           ,  # Remark: currently cache is not forwarded to sub-filocs
+                    cache_fs           = None           ,  # Remark: currently cache is not forwarded to sub-filocs
+                    cache_version_prop = None           ,  # Remark: currently cache is not forwarded to sub-filocs
+                    meta               = meta           ,
+                    join_level_name    = join_level_name,
+                    join_separator     = join_separator ,
+                    fs                 = fs             ,
                 )
             else:
                 filoc_instance = sub_filoc
@@ -283,15 +305,16 @@ def filoc(
         )
     elif isinstance(locpath, str):
         return FilocSingle(
-            locpath       = locpath,
-            writable      = writable,
-            transaction   = transaction,
-            frontend      = frontend_impl,
-            backend       = backend_impl,
-            cache_locpath = cache_locpath,
-            cache_fs      = cache_fs,
-            timestamp_col = timestamp_col,
-            fs            = fs,
+            locpath            = locpath,
+            writable           = writable,
+            transaction        = transaction,
+            frontend           = frontend_impl,
+            backend            = backend_impl,
+            cache_locpath      = cache_locpath,
+            cache_fs           = cache_fs,
+            cache_version_prop = cache_version_prop,
+            meta               = get_meta_mapping(meta),
+            fs                 = fs,
         )
     else:
         raise ValueError(f'locpath must be an instance of str or dict, but is {type(locpath)}')
@@ -299,17 +322,18 @@ def filoc(
 
 @overload
 def filoc_json(
-        locpath         : str,
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : str,
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> FilocSingle[Dict[str, Any], List[Dict[str, Any]]]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     ...
@@ -317,69 +341,73 @@ def filoc_json(
 
 @overload
 def filoc_json(
-        locpath         : Mapping[str, Union[str, Filoc]],
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : Mapping[str, Union[str, Filoc]],
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> FilocComposite[Dict[str, Any], List[Dict[str, Any]]]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     ...
 
 
 def filoc_json(
-        locpath         : Union[str, Mapping[str, Union[str, Filoc]]],
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : Union[str, Mapping[str, Union[str, Filoc]]],
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> Union[
         FilocSingle   [Dict[str, Any], List[Dict[str, Any]]],
         FilocComposite[Dict[str, Any], List[Dict[str, Any]]]
 ]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     loc = filoc(
-        locpath         = locpath              ,
-        frontend        = _get_frontend('json'),
-        backend         = backend              ,
-        singleton       = singleton            ,
-        writable        = writable             ,
-        transaction     = transaction          ,
-        cache_locpath   = cache_locpath        ,
-        cache_fs        = cache_fs             ,
-        timestamp_col   = timestamp_col        ,
-        join_level_name = join_level_name      ,
-        join_separator  = join_separator       ,
-        fs              = fs                   ,
+        locpath            = locpath              ,
+        frontend           = _get_frontend('json'),
+        backend            = backend              ,
+        singleton          = singleton            ,
+        writable           = writable             ,
+        transaction        = transaction          ,
+        cache_locpath      = cache_locpath        ,
+        cache_fs           = cache_fs             ,
+        cache_version_prop = cache_version_prop   ,
+        meta               = meta                 ,
+        join_level_name    = join_level_name      ,
+        join_separator     = join_separator       ,
+        fs                 = fs                   ,
     )
     return loc
 
 
 @overload
 def filoc_pandas(
-        locpath         : str,
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : str,
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> FilocSingle[Series, DataFrame]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     ...
@@ -387,51 +415,54 @@ def filoc_pandas(
 
 @overload
 def filoc_pandas(
-        locpath         : Mapping[str, Union[str, Filoc]],
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : Mapping[str, Union[str, Filoc]],
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> FilocComposite[Series, DataFrame]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     ...
 
 
 def filoc_pandas(
-        locpath         : Union[str, Mapping[str, Union[str, Filoc]]],
-        backend         : Union[BuiltinBackends, BackendContract] = _default_backend,
-        singleton       : bool                                    = _default_singleton,
-        writable        : Optional[bool]                          = _default_writable,
-        transaction     : Optional[bool]                          = _default_transaction,
-        cache_locpath   : Optional[str]                           = None,
-        cache_fs        : Optional[AbstractFileSystem]            = None,
-        timestamp_col   : Optional[str]                           = _default_timestamp_col,
-        join_level_name : Optional[str]                           = _default_join_level_name,
-        join_separator  : Optional[str]                           = _default_join_separator,
-        fs              : Optional[AbstractFileSystem]            = None,
+        locpath            : Union[str, Mapping[str, Union[str, Filoc]]],
+        backend            : Union[BuiltinBackends, BackendContract] = _default_backend,
+        singleton          : bool                                    = _default_singleton,
+        writable           : Optional[bool]                          = _default_writable,
+        transaction        : Optional[bool]                          = _default_transaction,
+        cache_locpath      : Optional[str]                           = None,
+        cache_fs           : Optional[AbstractFileSystem]            = None,
+        cache_version_prop : Optional[str]                           = None,
+        meta               : MetaOptions                             = _default_meta,
+        join_level_name    : Optional[str]                           = _default_join_level_name,
+        join_separator     : Optional[str]                           = _default_join_separator,
+        fs                 : Optional[AbstractFileSystem]            = None,
 ) -> Union[
     FilocSingle[Series, DataFrame],
     FilocComposite[Series, DataFrame]
 ]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     loc = filoc(
-        locpath         = locpath                ,
-        frontend        = _get_frontend('pandas'),
-        backend         = backend                ,
-        singleton       = singleton              ,
-        writable        = writable               ,
-        transaction     = transaction            ,
-        cache_locpath   = cache_locpath          ,
-        cache_fs        = cache_fs               ,
-        timestamp_col   = timestamp_col          ,
-        join_level_name = join_level_name        ,
-        join_separator  = join_separator         ,
-        fs              = fs                     ,
+        locpath            = locpath                ,
+        frontend           = _get_frontend('pandas'),
+        backend            = backend                ,
+        singleton          = singleton              ,
+        writable           = writable               ,
+        transaction        = transaction            ,
+        cache_locpath      = cache_locpath          ,
+        cache_fs           = cache_fs               ,
+        cache_version_prop = cache_version_prop     ,
+        meta               = meta                   ,
+        join_level_name    = join_level_name        ,
+        join_separator     = join_separator         ,
+        fs                 = fs                     ,
     )
     return loc

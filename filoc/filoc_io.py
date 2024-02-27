@@ -14,7 +14,7 @@ from filoc.fmt_parser import FmtParser
 from fsspec import AbstractFileSystem
 from fsspec.core import OpenFile
 
-from filoc.contract import Constraints, Constraint
+from filoc.contract import Constraints, Constraint, MetaOptions
 
 log = logging.getLogger('filoc')
 
@@ -232,12 +232,18 @@ class FilocIO:
         paths = sort_natural(self.fs.glob(self.render_glob_path(constraints)))
         return [(p, self.parse_path_properties(p)) for p in paths]
 
-    def list_paths_and_props_and_detail(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> List[Tuple[str, Dict[str, Any], Dict[str, Any]]]:
+    def list_paths_and_props_and_meta(
+        self,
+        constraints : Optional[Constraints] = None,
+        meta: MetaOptions = True,
+        **constraints_kwargs : Constraint
+    ) -> List[Tuple[str, Dict[str, Any], Dict[str, Any]]]:
         """
         Gets the list of all existing and valid paths fulfilling the provided constraints, along with the list of associated placeholder values,
              along with the detail of the path as provided by the underlying fsspec filesystem (e.g. size, type, etc.)
         Args:
             constraints: The equality constraints applied to the ``locpath`` placeholders
+            meta: If True, the detail of the path as provided by the underlying fsspec filesystem (e.g. size, type, etc.)
             **constraints_kwargs: The equality constraints applied to the ``locpath`` placeholders
 
         Returns:

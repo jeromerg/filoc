@@ -19,7 +19,7 @@ say that the `info.json` files contain two additional attributes `address` and `
 bidirectional binding between the files and a DataFrame with the following columns:
 
 | <br> | country | company | address | phone |
-| ---- | ------- | ------- | ------- | ----- |
+|------|---------|---------|---------|-------|
 | ...  | ...     | ...     | ...     | ...   |
 
 This is the key feature of filoc, which enables you to choose the best path structure for *your needs* and at the
@@ -137,7 +137,7 @@ a pandas Series instead of a DataFrame. The following table shows the filoc func
 to respectively DataFrame and Series:
 
 | cardinality | read                | write                | frontend class |
-| ----------- | ------------------- | -------------------- | -------------- |
+|-------------|---------------------|----------------------|----------------|
 | 1           | loc.read_content()  | loc.write_content()  | Series         |
 | *           | loc.read_contents() | loc.write_contents() | DataFrame      |
 
@@ -182,7 +182,7 @@ Under the hood, filoc accesses the files by using the [fsspec](https://filesyste
 It enables filoc to work with the following file systems:
 
 | Protocol                       | File system                          | Additional requirements                            |
-| ------------------------------ | ------------------------------------ | -------------------------------------------------- |
+|--------------------------------|--------------------------------------|----------------------------------------------------|
 | (none) or `file://`            | [local]                              |                                                    |
 | `memory://`                    | [memory]                             |                                                    |
 | `zip://`                       | [zip]                                |                                                    |
@@ -287,12 +287,12 @@ loc = filoc(..., backend='yaml')
 
 Filoc has four builtin backends:
 
-Name     | Description   | option `singleton` | option `encoding`
----------|---------------|------------------|----------------
-`json`   | json files    | Yes              | Yes
-`yaml`   | yaml files    | Yes              | Yes
-`csv`    | csv files     | No               | Yes
-`pickle` | pickle files  | Yes              | No
+| Name     | Description  | option `singleton` | option `encoding` |
+|----------|--------------|--------------------|-------------------|
+| `json`   | json files   | Yes                | Yes               |
+| `yaml`   | yaml files   | Yes                | Yes               |
+| `csv`    | csv files    | No                 | Yes               |
+| `pickle` | pickle files | Yes                | No                |
 
 - Option `singleton`: If True, then filoc reads and writes a single object in each file (Mapping). If False the filoc
  reads and writes lists of object (List of Mapping).
@@ -313,7 +313,7 @@ default a DataFrame (returned by `read_contents(...)`) or a Series (returned by 
 Filoc has two builtin frontends:
 
 | cardinality | read                | write                | frontend class       |
-| ----------- | ------------------- | -------------------- | -------------------- |
+|-------------|---------------------|----------------------|----------------------|
 | 1           | loc.read_content()  | loc.write_content()  | Dict[str, Any]       |
 | *           | loc.read_contents() | loc.write_contents() | List[Dict[str, Any]] |
 
