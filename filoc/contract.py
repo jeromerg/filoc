@@ -31,8 +31,8 @@ For example, in the ``'json'`` frontend, TContents is equal to `List[Mapping[str
 BuiltinFrontends      = Literal['json', 'pandas'] if Literal else str
 """Shortcuts used to designate filoc preset frontends"""
 
-BuiltinBackends       = Literal['json', 'yaml', 'csv', 'pickle'] if Literal else str
-"""Shortcut used to designate filoc preset backends"""
+BuiltinBackends       = Literal['meta', 'json', 'yaml', 'csv', 'pickle'] if Literal else str
+"""Shortcut used to designate filoc preset backends: 'meta' is a special backend that does not read the file contents but only the file metadata"""
 
 Constraint           = Any
 """key-values describing constraints to apply while filtering data. Currently only equality is supported."""
