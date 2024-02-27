@@ -33,9 +33,9 @@ def _get_frontend(frontend : Union[BuiltinFrontends, FrontendContract]):
 
 
 def _get_backend(backend : Union[BuiltinBackends, BackendContract], is_singleton : bool, encoding : str):
-    if backend == 'meta':
-        from filoc.backends import MetaBackend
-        return MetaBackend(encoding)
+    if backend == 'path':
+        from filoc.backends import PathBackend
+        return PathBackend()
     elif backend == 'csv':
         from filoc.backends import CsvBackend
         return CsvBackend(encoding)

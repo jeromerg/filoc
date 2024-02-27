@@ -463,36 +463,36 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
                 props.update(relevant_index)
 
         # delegate writing to
-        def save():
-            for sub_filoc_name, sub_filoc_props_list in props_list_by_filoc_name.items():
-                sub_filoc = self.filoc_by_name[sub_filoc_name]
+        def save_in_both_cases():
+            for file_name_, props_list_ in props_list_by_filoc_name.items():
+                filoc_ = self.filoc_by_name[file_name_]
                 # noinspection PyProtectedMember
-                sub_filoc._write_props_list(sub_filoc_props_list, dry_run=dry_run)
+                filoc_._write_props_list(props_list_, dry_run=dry_run)
 
-            if self.transaction:
+        if self.transaction:
 
-                # begin compound transaction
-                for sub_filoc_name in props_list_by_filoc_name:
-                    sub_filoc = self.filoc_by_name[sub_filoc_name]
-                    sub_filoc.fs.transaction.__enter__()
+            # begin compound transaction
+            for filoc_name in props_list_by_filoc_name:
+                filoc = self.filoc_by_name[filoc_name]
+                filoc.fs.transaction.__enter__()
 
-                try:
-                    save()
+            try:
+                save_in_both_cases()
 
-                    # commit compound transaction
-                    for sub_filoc_name in props_list_by_filoc_name:
-                        sub_filoc = self.filoc_by_name[sub_filoc_name]
-                        sub_filoc.fs.transaction.__exit__(None, None, None)
+                # commit compound transaction
+                for filoc_name in props_list_by_filoc_name:
+                    filoc = self.filoc_by_name[filoc_name]
+                    filoc.fs.transaction.__exit__(None, None, None)
 
-                except:
-                    exc_info = sys.exc_info()
-                    # rollback compound transaction
-                    for sub_filoc_name in props_list_by_filoc_name:
-                        sub_filoc = self.filoc_by_name[sub_filoc_name]
-                        sub_filoc.fs.transaction.__exit__(*exc_info)
-            else:
-                # no transaction
-                save()
+            except:
+                exc_info = sys.exc_info()
+                # rollback compound transaction
+                for filoc_name in props_list_by_filoc_name:
+                    filoc = self.filoc_by_name[filoc_name]
+                    filoc.fs.transaction.__exit__(*exc_info)
+        else:
+            # no transaction
+            save_in_both_cases()
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
