@@ -51,6 +51,7 @@ def _get_backend(backend : Union[BuiltinBackends, BackendContract], is_singleton
     else:
         return backend
 
+
 @overload
 def filoc(
         locpath          : str,
@@ -68,7 +69,7 @@ def filoc(
         fs               : Optional[AbstractFileSystem]              = None,
 ) -> FilocSingle:
     """
-    Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to thhe *set of files*.
+    Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to the *set of files*.
 
     Args:
         locpath: 
@@ -102,7 +103,7 @@ def filoc(
             Allows to override the file encoding.
 
         writable:
-            If True, then write operations are allowed. Elsewhere write operation raises an ``UnsupportedOperation`` error.
+            If True, then write operations are allowed, elsewhere write operation raises an ``UnsupportedOperation`` error.
 
         transaction:
             If True, then write into a temp file and then rename the file to the target file.
@@ -113,7 +114,7 @@ def filoc(
             the intermediate representation (data model loaded by the backend). The cache allows to speed up multiple reads from slow remote
             file systems as well as speed up expensive backend processing. 
             
-            If you provide a ``cache_locpath`` with placeholders, the cache is then splitted into multiple files based on the placeholder values. 
+            If you provide a ``cache_locpath`` with placeholders, the cache is then split into multiple files based on the placeholder values.
             It allows you to encapsulate the cache data with original the data structure.
 
         cache_fs:
@@ -140,6 +141,7 @@ def filoc(
     """
     ...
 
+
 @overload
 def filoc(
         locpath          : Mapping[str, Union[str, Filoc]],
@@ -157,7 +159,7 @@ def filoc(
         fs               : Optional[AbstractFileSystem]              = None,
 ) -> FilocComposite:
     """
-    Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to thhe *set of files*.
+    Creates a ``Filoc`` instance which allows to read a *set of files* and visualize it as a DataFrame (or another frontend object, if another frontend is passed to the factory), and write changes back to the *set of files*.
 
     Args:
         locpath: 
@@ -191,7 +193,7 @@ def filoc(
             Allows to override the file encoding.
 
         writable:
-            If True, then write operations are allowed. Elsewhere write operation raises an ``UnsupportedOperation`` error.
+            If True, then write operations are allowed, elsewhere write operation raises an ``UnsupportedOperation`` error.
 
         transaction:
             If True, then write into a temp file and then rename the file to the target file.
@@ -202,7 +204,7 @@ def filoc(
             the intermediate representation (data model loaded by the backend). The cache allows to speed up multiple reads from slow remote
             file systems as well as speed up expensive backend processing. 
             
-            If you provide a ``cache_locpath`` with placeholders, the cache is then splitted into multiple files based on the placeholder values. 
+            If you provide a ``cache_locpath`` with placeholders, the cache is then split into multiple files based on the placeholder values.
             It allows you to encapsulate the cache data with original the data structure.
 
         cache_fs:
@@ -346,7 +348,7 @@ def filoc_json(
 ) -> Union[
         FilocSingle   [Dict[str, Any], List[Dict[str, Any]]],
         FilocComposite[Dict[str, Any], List[Dict[str, Any]]]
-    ]:
+]:
     """ Same as filoc(), but with typed return value to improve IDE support """
     loc = filoc(
         locpath         = locpath              ,
