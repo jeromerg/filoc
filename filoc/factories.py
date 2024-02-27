@@ -226,6 +226,7 @@ def filoc(
     """
     ...
 
+
 def filoc(
         locpath          : Union[str, Mapping[str, Union[str, Filoc]]],
         frontend         : Union[BuiltinFrontends, FrontendContract] = _default_frontend,
@@ -289,6 +290,7 @@ def filoc(
         )
     else:
         raise ValueError(f'locpath must be an instance of str or dict, but is {type(locpath)}')
+
 
 @overload
 def filoc_json(
