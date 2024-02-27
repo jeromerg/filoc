@@ -1,7 +1,8 @@
 """ Filoc Core Implementation """
 import json
 import logging
-import os, sys
+import os
+import sys
 import pickle
 import random
 import socket
@@ -347,7 +348,8 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         return content
 
     def __str__(self) -> str:
-        return f"FilocSingle('{self.locpath}')"
+        return f"FilocSingle('{self._locpath}')"
+
 
 # ------------------
 # FilocCompositeBase
@@ -379,6 +381,7 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
 
         self.join_keys_by_filoc_name = {}  # type: Dict[str, Set[str]]
         for filoc_name, filoc in filoc_by_name.items():
+            # noinspection PyProtectedMember
             self.join_keys_by_filoc_name[filoc_name] = filoc._path_props
 
     def invalidate_cache(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint):
@@ -425,9 +428,9 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
 
     def _write_props_list(self, props_list : ReadOnlyPropsList, dry_run=False):
         # prepare empty props_list by filoc_name
-        props_list_by_filoc_name = {}
-        props_list_by_filoc_name[self.join_level_name] = [ dict() for _ in range(len(props_list)) ]
+        props_list_by_filoc_name = {self.join_level_name: [dict() for _ in range(len(props_list))]}
         for filoc_name, filoc in self.filoc_by_name.items():
+            # noinspection PyProtectedMember
             if filoc._writable:
                 props_list_by_filoc_name[filoc_name] = [ dict() for _ in range(len(props_list)) ]
             else:
@@ -461,35 +464,35 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
 
         # delegate writing to
         def save():
-            for filoc_name, filoc_props_list in props_list_by_filoc_name.items():
-                filoc = self.filoc_by_name[filoc_name]
+            for sub_filoc_name, sub_filoc_props_list in props_list_by_filoc_name.items():
+                sub_filoc = self.filoc_by_name[sub_filoc_name]
                 # noinspection PyProtectedMember
-                filoc._write_props_list(filoc_props_list, dry_run=dry_run)
+                sub_filoc._write_props_list(sub_filoc_props_list, dry_run=dry_run)
 
-        if self.transaction:
+            if self.transaction:
 
-            # begin compound transaction
-            for filoc_name in props_list_by_filoc_name:
-                filoc = self.filoc_by_name[filoc_name]
-                filoc.fs.transaction.__enter__()
+                # begin compound transaction
+                for sub_filoc_name in props_list_by_filoc_name:
+                    sub_filoc = self.filoc_by_name[sub_filoc_name]
+                    sub_filoc.fs.transaction.__enter__()
 
-            try:
+                try:
+                    save()
+
+                    # commit compound transaction
+                    for sub_filoc_name in props_list_by_filoc_name:
+                        sub_filoc = self.filoc_by_name[sub_filoc_name]
+                        sub_filoc.fs.transaction.__exit__(None, None, None)
+
+                except:
+                    exc_info = sys.exc_info()
+                    # rollback compound transaction
+                    for sub_filoc_name in props_list_by_filoc_name:
+                        sub_filoc = self.filoc_by_name[sub_filoc_name]
+                        sub_filoc.fs.transaction.__exit__(*exc_info)
+            else:
+                # no transaction
                 save()
-
-                # commit compound transaction
-                for filoc_name in props_list_by_filoc_name:
-                    filoc = self.filoc_by_name[filoc_name]
-                    filoc.fs.transaction.__exit__(None, None, None)
-
-            except:
-                exc_info = sys.exc_info()
-                # rollback compound transaction
-                for filoc_name in props_list_by_filoc_name:
-                    filoc = self.filoc_by_name[filoc_name]
-                    filoc.fs.transaction.__exit__(*exc_info)
-        else:
-            # no transaction
-            save()
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
@@ -505,5 +508,6 @@ class FilocComposite(Filoc[TContent, TContents], ABC):
         raise NotImplementedError("TODO: Implement")
 
     def __str__(self) -> str:
-        list_locpaths = ",".join([f"{k}: '{f._locpath}'" for k,f in self.filoc_by_name.items()])
+        # noinspection PyProtectedMember
+        list_locpaths = ",".join([f"{k}: '{f._locpath}'" for k, f in self.filoc_by_name.items()])
         return f"""FilocComposite({list_locpaths})"""
