@@ -7,8 +7,7 @@ from fsspec.spec import AbstractFileSystem
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
-from filoc.contract import BuiltinFrontends, Filoc, BackendContract, FrontendContract, BuiltinBackends, MetaOptions, \
-    get_meta_mapping
+from filoc.contract import BuiltinFrontends, Filoc, BackendContract, FrontendContract, BuiltinBackends, MetaOptions
 from filoc.core import FilocSingle, FilocComposite
 
 _default_frontend        = 'pandas'
@@ -131,7 +130,7 @@ def filoc(
         meta:
             Default: None. Adds file metadata as property/column to the result.
             If None or False, no metadata is added.
-            If True: all metadata are added (flattened with pandas normalize function).
+            If True: all metadata are added (flattened with pandas normalize function). Incompatible with writable=True
             If a string or a list of strings: only the metadata with the given keys are added.
             If a mapping: A key is the resulting name and the value is the original metadata key.
 
@@ -230,7 +229,7 @@ def filoc(
         meta:
             Default: None. Adds file metadata as property/column to the result.
             If None or False, no metadata is added.
-            If True: all metadata are added (flattened with pandas normalize function).
+            If True: all metadata are added (flattened with pandas normalize function). Incompatible with writable=True
             If a string or a list of strings: only the metadata with the given keys are added.
             If a mapping: A key is the resulting name and the value is the original metadata key.
 
@@ -313,7 +312,7 @@ def filoc(
             cache_locpath      = cache_locpath,
             cache_fs           = cache_fs,
             cache_version_prop = cache_version_prop,
-            meta               = get_meta_mapping(meta),
+            meta               = meta,
             fs                 = fs,
         )
     else:

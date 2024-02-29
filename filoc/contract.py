@@ -72,6 +72,13 @@ class SingletonExpectedError(FrontendConversionError):
     def __init__(self, *args):
         super().__init__(*args)
 
+
+class ConfigurationError(ValueError):
+    """Exception raised by filoc, when the configuration is not correct """
+    def __init__(self, *args):
+        super().__init__(*args)
+
+
 # ----------------
 # Abstract classes
 # ----------------
@@ -286,24 +293,11 @@ class Filoc(Generic[TContent, TContents], ABC):
     @abstractmethod
     def _write_props_list(self, props_list : PropsList, dry_run=False):
         """Write the filoc intermediate representation to the file system via the backend.
-        This function is used internally to shared the intermediate representation in filoc composites.
+        This function is used internally to share the intermediate representation in filoc composites.
 
         Args:
             props_list: the filoc intermediate representation 
             dry_run: If True, then only simulate the writing. The default value is False.
         """
         raise NotImplementedError('Abstract')
-
-
-def get_meta_mapping(meta_options: MetaOptions) -> Dict[str, str]:
-    if meta_options is None:
-        return dict()
-    elif isinstance(meta_options, str):
-        return {meta_options: meta_options}
-    elif isinstance(meta_options, list):
-        return {meta_option: meta_option for meta_option in meta_options}
-    elif isinstance(meta_options, dict):
-        return meta_options
-    else:
-        raise ValueError(f'Unsupported meta_options type: {type(meta_options)}')
 

@@ -10,6 +10,8 @@ from typing import Dict, Any, List, Mapping, Optional, Set
 from typing import Tuple
 
 import fsspec
+import pandas as pd
+
 from filoc.fmt_parser import FmtParser
 from fsspec import AbstractFileSystem
 from fsspec.core import OpenFile
@@ -85,6 +87,29 @@ def mix_dicts_and_coerce(dict1, dict2) -> Mapping[str, Any]:
         return dict2
     else:
         return dict()
+
+
+def get_meta_mapping(meta_options: MetaOptions) -> Optional[Dict[str, str]]:
+    if meta_options is None or meta_options is False:
+        return dict()
+    elif meta_options is True:
+        return None
+    elif isinstance(meta_options, str):
+        return {meta_options: meta_options}
+    elif isinstance(meta_options, list):
+        return {meta_option: meta_option for meta_option in meta_options}
+    elif isinstance(meta_options, dict):
+        return meta_options
+    else:
+        raise ValueError(f'Unsupported meta_options type: {type(meta_options)}')
+
+
+def map_meta(meta_mapping: Optional[Dict[str, str]], meta: Dict[str, Any]) -> Dict[str, Any]:
+    meta_flat = pd.json_normalize(meta).to_dict(orient='records')[0]
+    if meta_mapping is None:
+        return meta_flat
+    else:
+        return {name: meta_flat.get(original_name, None) for name, original_name in meta_mapping.items()}
 
 
 # TODO: Support path character escaping
@@ -243,15 +268,22 @@ class FilocIO:
              along with the detail of the path as provided by the underlying fsspec filesystem (e.g. size, type, etc.)
         Args:
             constraints: The equality constraints applied to the ``locpath`` placeholders
-            meta: If True, the detail of the path as provided by the underlying fsspec filesystem (e.g. size, type, etc.)
+            meta:
+                Default: True. Adds file metadata as property/column to the result.
+                If None or False, no metadata is added.
+                If True: all metadata are added (flattened with pandas normalize function).
+                If a string or a list of strings: only the metadata with the given keys are added.
+                If a mapping: A key is the resulting name and the value is the original metadata key.
             **constraints_kwargs: The equality constraints applied to the ``locpath`` placeholders
 
         Returns:
             A list of tuples containing for each valid path, the path and the list of related placeholder values
         """
+        meta_mapping = get_meta_mapping(meta)
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
-        detail_by_path = self.fs.glob(self.render_glob_path(constraints), detail=True)        
-        result = [(path, self.parse_path_properties(path), detail) for path, detail in detail_by_path.items()]
+        detail_by_path = self.fs.glob(self.render_glob_path(constraints), detail=True)
+
+        result = [(path, self.parse_path_properties(path), map_meta(meta_mapping, detail)) for path, detail in detail_by_path.items()]
         return sorted(result, key=lambda x: natural_sort_key(x[0]))
 
     def exists(self, constraints : Optional[Constraints] = None, **constraints_kwargs : Constraint) -> bool:

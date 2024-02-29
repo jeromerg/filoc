@@ -18,8 +18,8 @@ from frozendict import frozendict
 from fsspec.spec import AbstractFileSystem
 
 from filoc.contract import TContent, TContents, Constraints, Props, PropsList, Filoc, \
-    FrontendContract, BackendContract, ReadOnlyProps, Constraint, ReadOnlyPropsList
-from .filoc_io import FilocIO, mix_dicts_and_coerce
+    FrontendContract, BackendContract, ReadOnlyProps, Constraint, ReadOnlyPropsList, MetaOptions, ConfigurationError
+from .filoc_io import FilocIO, mix_dicts_and_coerce, get_meta_mapping
 from .utils import merge_tables
 
 log = logging.getLogger('filoc')
@@ -57,7 +57,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
             cache_locpath      : str                                  ,
             cache_fs           : Optional[AbstractFileSystem]         ,
             cache_version_prop : Optional[str]                        ,
-            meta               : Dict[str, str]                       ,
+            meta               : MetaOptions                          ,
             fs                 : Optional[AbstractFileSystem]         ,
     ):
         """
@@ -74,7 +74,10 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
             self._cache_loc = FilocIO(cache_locpath, writable=True, fs=cache_fs)
 
         self._cache_version_prop = cache_version_prop
-        self._meta_mapping = meta
+        self._meta = meta
+        self._meta_mapping = get_meta_mapping(meta)
+        if writable and self._meta is not None and self._meta_mapping is None:
+            raise ConfigurationError('writable=True and meta=True are incompatible. Either set writable=False OR name explicit meta property name/names or mapping')
 
     @contextmanager
     def lock(self, attempt_count: int = 60, attempt_secs: float = 1.0):
@@ -199,13 +202,8 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
 
         running_cache = None  # type:Optional[_RunningCache]
 
-        if len(self._meta_mapping) == 0:
-            l = self.list_paths_and_props(constraints)
-            path_list, path_props_list = zip(*l) if len(l) > 0 else ([], [])
-            meta_props_list = [None for _ in range(len(path_list))]
-        else:
-            l = self.list_paths_and_props_and_meta(constraints, self._meta_mapping)
-            path_list, path_props_list, meta_props_list = zip(*l) if len(l) > 0 else ([], [], [])
+        lppms = self.list_paths_and_props_and_meta(constraints, self._meta)
+        path_list, path_props_list, meta_props_list = zip(*lppms) if len(lppms) > 0 else ([], [], [])
 
         log.info(f'Found {len(path_list)} files to read in locpath {self._locpath} fulfilling props {constraints}')
 
@@ -319,7 +317,7 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
         recorded_row_id_by_path_props    = {}
         recorded_row_other_props_by_path_props = {}
         for row_id, row_props in enumerate(props_list):
-            path_props, row_other_props, row_timestamp = self._split_keyvalues(row_props)
+            path_props, meta_props, row_other_props = self._split_to_path_meta_and_other_props(row_props)
             row_path_props_hashable = frozendict(path_props)
 
             if row_path_props_hashable not in recorded_row_other_props_by_path_props:
@@ -340,18 +338,20 @@ class FilocSingle(FilocIO, Filoc[TContent, TContents], ABC):
                 self._backend.write(self.fs, path, other_props_list)
             log.info(f'{dry_run_log_prefix}Saved {path}')
 
-    def _split_keyvalues(self, keyvalues : ReadOnlyProps) -> Tuple[Props, Props, datetime]:
+    def _split_to_path_meta_and_other_props(self, keyvalues : ReadOnlyProps) -> Tuple[Props, Props, Props]:
+        if self._meta is not None and self._meta_mapping is None:
+            raise ValueError('Cannot write data if filoc meta option is set to True. You must name explicit meta property name/names or mapping')
         path_props  = {}
-        timestamp   = None
-        other_props = dict()
+        meta_props  = {}
+        other_props = {}
         for (k, v) in keyvalues.items():
             if k in self._path_props:
                 path_props[k] = v
-            elif k == self._meta_mapping:
-                timestamp = keyvalues[k]
+            elif self._meta is not None and k in self._meta_mapping:
+                meta_props[k] = v
             else:
                 other_props[k] = v
-        return path_props, other_props, timestamp
+        return path_props, meta_props, other_props
 
     def _read_path(self, path : str, path_props : Props, constraints : Constraints):
         log.info(f'Reading content for {path}')
