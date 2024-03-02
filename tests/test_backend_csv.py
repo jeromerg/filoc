@@ -35,7 +35,7 @@ class TestBackendCsv(unittest.TestCase):
         df = DataFrame([data])
 
         loc = filoc(self.file, backend='csv', singleton=True, writable=True)
-        df = loc.write_contents(df)
+        loc.write_contents(df)
 
         with open(self.file) as f:
             content = f.read()

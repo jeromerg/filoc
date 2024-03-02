@@ -48,6 +48,11 @@ def _get_backend(backend : Union[BuiltinBackends, BackendContract], is_singleton
     elif backend == 'yaml':
         from filoc.backends import YamlBackend
         return YamlBackend(is_singleton, encoding)
+    elif backend == 'parquet':
+        from filoc.backends import ParquetBackend
+        return ParquetBackend()
+    elif isinstance(backend, str):
+        raise ValueError(f'Unknown backend: {backend}')
     else:
         return backend
 

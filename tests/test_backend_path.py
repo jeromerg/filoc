@@ -37,7 +37,7 @@ class TestBackendPath(unittest.TestCase):
 
         loc = filoc(self.file, backend='path', singleton=True, writable=True)
         try:
-            df = loc.write_contents(df)
+            loc.write_contents(df)
             raise AssertionError("previous call expected to raise an error")
         except NotImplementedError:
             pass

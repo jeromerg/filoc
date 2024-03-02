@@ -32,7 +32,7 @@ class TestBackendPickle(unittest.TestCase):
         df = DataFrame([data])
 
         loc = filoc(self.file, backend='pickle', singleton=True, writable=True)
-        df = loc.write_contents(df)
+        loc.write_contents(df)
 
         with open(self.file, 'rb') as f:
             content = pickle.load(f)

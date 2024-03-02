@@ -1,6 +1,7 @@
 """
 This module contains the FilocIO class, used to work with files defined by a locpath: a path containing format placeholders.
 """
+import datetime
 import logging
 import os
 import re
@@ -17,6 +18,7 @@ from fsspec import AbstractFileSystem
 from fsspec.core import OpenFile
 
 from filoc.contract import Constraints, Constraint, MetaOptions
+from filoc.typing_utils import KeyValueProtocol
 
 log = logging.getLogger('filoc')
 
@@ -112,12 +114,33 @@ def map_meta(meta_mapping: Optional[Dict[str, str]], meta: Dict[str, Any]) -> Di
         return {name: meta_flat.get(original_name, None) for name, original_name in meta_mapping.items()}
 
 
+def jsonify_detail(d):
+    if isinstance(d, datetime.datetime):
+        return d.isoformat()
+    elif isinstance(d, datetime.date):
+        return d.isoformat()
+    elif isinstance(d, datetime.time):
+        return d.isoformat()
+    elif isinstance(d, (str, int, float, bool, type(None))):
+        return d
+    elif isinstance(d, bytearray):
+        return d.hex()
+    elif isinstance(d, bytes):
+        return d.hex()
+    elif isinstance(d, (Mapping, KeyValueProtocol)):
+        return {k: jsonify_detail(v) for k, v in zip(d.keys(), d.values())}
+    elif isinstance(d, (list, tuple)):
+        return [jsonify_detail(v) for v in d]
+    else:
+        return str(d)
+
 # TODO: Support path character escaping
 
 
 # -------------------
 # Class FilocIO
 # -------------------
+
 class FilocIO:
     """
     Class providing access to files, given the locpath definition. The locpath is a format string, which placeholders
@@ -282,7 +305,7 @@ class FilocIO:
         meta_mapping = get_meta_mapping(meta)
         constraints = mix_dicts_and_coerce(constraints, constraints_kwargs)
         detail_by_path = self.fs.glob(self.render_glob_path(constraints), detail=True)
-
+        detail_by_path = {p: jsonify_detail(d) for p, d in detail_by_path.items()}
         result = [(path, self.parse_path_properties(path), map_meta(meta_mapping, detail)) for path, detail in detail_by_path.items()]
         return sorted(result, key=lambda x: natural_sort_key(x[0]))
 

@@ -18,3 +18,8 @@ tensorflow
 torch
 torchvision
 coverage
+jupyter
+# azure file system
+adlfs
+pyarrow
+s3fs
