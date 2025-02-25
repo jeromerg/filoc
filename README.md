@@ -1,5 +1,6 @@
 ![Tests](https://github.com/jeromerg/filoc/workflows/Tests/badge.svg)
 
+
 <img src="./filoc.svg" alt="filoc" width="150"/>
 
 Filoc is a highly customizable library that primarily enables you to:
